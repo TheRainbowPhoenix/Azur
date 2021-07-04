@@ -1,0 +1,53 @@
+//---
+// azur.config: Compile-time configuration
+//---
+
+#pragma once
+
+#define AZUR_VERSION_MAJOR @Azur_VERSION_MAJOR@
+#define AZUR_VERSION_MINOR @Azur_VERSION_MINOR@
+
+/* Whether this is a debug build (if not, release build obviously). */
+#cmakedefine AZUR_DEBUG
+
+//---
+// In each of the following groups, options are mutually exclusive. Exactly one
+// of each category is specified in a given build.
+//---
+
+/* Target platform. This only distinguishes platforms with major programming
+   differences. when possible, use tests on specific API requirements
+   rather than the platform (since platform doesn't tell that much). */
+
+/* Web browser with emscripten. */
+#cmakedefine AZUR_PLATFORM_EMSCRIPTEN
+/* Generic platform. */
+#cmakedefine AZUR_PLATFORM_GENERIC
+
+
+/* Toolkit API; for windows, timers, audio, fonts, etc. */
+
+/* SDL2. */
+#cmakedefine AZUR_TOOLKIT_SDL
+/* Native gint drivers on fx-CG. */
+#cmakedefine AZUR_TOOLKIT_GINT
+
+
+/* Graphics API for rendering tasks. */
+
+/* OpenGL 3.3 core (essentially desktop targets). */
+#cmakedefine AZUR_GRAPHICS_OPENGL_3_3
+/* WebGL-friendly subset of OpenGL ES 2.0 (mobile targets and emscripten). */
+#cmakedefine AZUR_GRAPHICS_OPENGL_ES_2_0
+/* Custom broken rendering engine for the fx-CG running gint. */
+#cmakedefine AZUR_GRAPHICS_GINT_CG
+
+
+/* Input/output settings on terminal. */
+
+/* No terminal output entirely. */
+#cmakedefine AZUR_TERMINAL_NONE
+/* No formatting or colors. */
+#cmakedefine AZUR_TERMINAL_PLAIN
+/* Formatting with ANSI escape codes. */
+#cmakedefine AZUR_TERMINAL_ANSI

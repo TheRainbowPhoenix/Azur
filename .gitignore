@@ -1,0 +1,7 @@
+# Build folders
+/build-cg
+/build-linux
+/build-emscripten
+
+# Editor files
+*.sublime-*
