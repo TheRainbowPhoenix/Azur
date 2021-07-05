@@ -6,7 +6,7 @@ layout(location=1) in vec2 a_texture_pos;
 /* Location in image space */
 out vec2 v_position;
 
-uniform vec3 u_windowSize;
+uniform vec2 u_windowSize;
 
 void main() {
 	v_position = a_texture_pos;

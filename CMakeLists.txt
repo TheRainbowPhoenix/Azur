@@ -65,9 +65,11 @@ endif()
 
 #---
 
-# This provides Dear ImGui but also GL3W as an OpenGL loader
 if(NOT FACETS_PLATFORM STREQUAL gint)
+  # This provides Dear ImGui but also GL3W as an OpenGL loader
   add_subdirectory(imgui-builds)
+  # This provide GLM
+  add_subdirectory(glm-builds)
 endif()
 
 add_subdirectory(azur)
