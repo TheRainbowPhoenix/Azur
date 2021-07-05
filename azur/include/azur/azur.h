@@ -14,7 +14,7 @@ AZUR_BEGIN_DECLS
 
    On GINT_CG, the window size is fixed to 396x224 and ignored.
    TODO: On GINT_CG, accept super-resolution in azur_init(). */
-int azur_init(int window_width, int window_height);
+int azur_init(char const *title, int window_width, int window_height);
 
 /* azur_main_loop(): Run the update/render loop.
 

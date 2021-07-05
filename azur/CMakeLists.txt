@@ -47,6 +47,11 @@ if(AZUR_PLATFORM_EMSCRIPTEN)
   set_target_properties(azur PROPERTIES LINK_DEPENDS "${ASSETS_ABSOLUTE}")
 endif()
 
+# Use ImGui's integrated GL3W loader (which we build separately)
+if(AZUR_GRAPHICS_OPENGL_3_3)
+  target_link_libraries(azur PUBLIC gl3w)
+endif()
+
 target_include_directories(azur
   PUBLIC "${PROJECT_SOURCE_DIR}/include"
   PUBLIC "${PROJECT_BINARY_DIR}/include"

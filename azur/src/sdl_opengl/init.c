@@ -10,7 +10,7 @@ static SDL_GLContext glcontext = NULL;
 
 static void main_loop_quit(void);
 
-int azur_init(int window_width, int window_height)
+int azur_init(char const *title, int window_width, int window_height)
 {
     int rc = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
     if(rc < 0) {
@@ -24,16 +24,24 @@ int azur_init(int window_width, int window_height)
         return 1;
     }
 
-    /* Select OpenGL 3.3 core, but not on the OpenGL ES/emscripten backend,
-       which does not support context attributes. */
+    /* Select OpenGL 3.3 core */
     #ifdef AZUR_GRAPHICS_OPENGL_3_3
-    SDL_GL_SetAttribute(
-        SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+        SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     #endif
 
-    window = SDL_CreateWindow("facets-floating",
+    /* ... or select Open GL ES 2.0 */
+    #ifdef AZUR_GRAPHICS_OPENGL_ES_2_0
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    #endif
+
+    window = SDL_CreateWindow(title,
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         window_width, window_height,
         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
@@ -47,11 +55,21 @@ int azur_init(int window_width, int window_height)
         azlog(FATAL, "SDL_GL_CreateContext: %s\n", SDL_GetError());
         return 1;
     }
+    SDL_GL_MakeCurrent(window, glcontext);
 
     rc = SDL_GL_SetSwapInterval(0);
     if(rc < 0)
         azlog(ERROR, "SDL_GL_SetSwapInterval: %s\n", SDL_GetError());
 
+    #ifdef AZUR_GRAPHICS_OPENGL_3_3
+    rc = gl3wInit();
+    if(rc != 0) {
+        azlog(FATAL, "gl3wInit: %d\n", rc);
+        return 1;
+    }
+    #endif
+
+    glEnable(GL_SCISSOR_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -100,14 +118,18 @@ struct params {
     bool tied, started;
 };
 
+static void nop(void)
+{
+}
+
 static EM_BOOL frame(double time, void *data)
 {
     struct params *params = data;
 
     if(params->tied && params->started)
-        params->update();
+        if(params->update) params->update();
 
-    params->render();
+    if(params->render) params->render();
     params->started = true;
 
     return EM_TRUE;
@@ -129,7 +151,13 @@ int azur_main_loop(
 
     if(!(flags & AZUR_MAIN_LOOP_TIED)) {
         void (*update_v)(void) = (void *)update;
-        emscripten_set_main_loop(update_v, update_ups, false);
+        emscripten_set_main_loop(update_v, update_ups, true);
+    }
+    else {
+        /* Even if no update is requested, we want emscripten to simulate an
+           infinite loop, as it is needed for Dear ImGui to work due to
+           threading considerations */
+        emscripten_set_main_loop(nop, 1, true);
     }
 
     return 0;
@@ -193,7 +221,7 @@ int azur_main_loop(
     while(1) {
         if(update_tick && !(flags & AZUR_MAIN_LOOP_TIED)) {
             update_tick = 0;
-            if(update()) break;
+            if(update && update()) break;
         }
 
         /* When vsync is enabled, render() is indirectly blocking so we just
@@ -203,9 +231,9 @@ int azur_main_loop(
 
             /* Tied renders and updates */
             if(started && (flags & AZUR_MAIN_LOOP_TIED)) {
-                if(update()) break;
+                if(update && update()) break;
             }
-            render();
+            if(render) render();
             started = true;
         }
 

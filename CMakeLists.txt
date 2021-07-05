@@ -45,6 +45,7 @@ if(FACETS_PLATFORM STREQUAL linux)
   pkg_check_modules(sdl2 REQUIRED sdl2 IMPORTED_TARGET)
   pkg_check_modules(sdl2_image REQUIRED SDL2_image IMPORTED_TARGET)
   pkg_check_modules(opengl REQUIRED opengl IMPORTED_TARGET)
+  pkg_check_modules(glx REQUIRED glx IMPORTED_TARGET)
 
   link_libraries(PkgConfig::sdl2_image PkgConfig::sdl2 PkgConfig::opengl -lm)
 endif()
@@ -63,5 +64,10 @@ if(FACETS_PLATFORM STREQUAL emscripten)
 endif()
 
 #---
+
+# This provides Dear ImGui but also GL3W as an OpenGL loader
+if(NOT FACETS_PLATFORM STREQUAL gint)
+  add_subdirectory(imgui-builds)
+endif()
 
 add_subdirectory(azur)
