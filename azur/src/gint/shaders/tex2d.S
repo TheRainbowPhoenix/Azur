@@ -1,60 +1,143 @@
 .global _azrp_shader_tex2d
 .align 4
 
+/* TODO [scaling]: Pass the _792 constant and fragment address as uniform */
+
 /* Register assignment
+   r0: (temporary)
    r1: Lines
    r2: Columns
    r3: Input
    r4: Output
-   r5: Command queue
-   r7: Constant 396*2 = 0x318
-   r8: Output stride
-   r9: Input stride */
+   r5: Command queue; (temporary)
+   r6: (temporary)
+   r7: Output stride
+   r8: Input stride */
 _azrp_shader_tex2d:
-	mov.l	r8, @-r15
+	mov.w	_792, r7
 	add	#2, r5
 
-	mov.l	r9, @-r15
-	mov	#0x03, r7
+	mov.w	@r5+, r2    /* Columns */
 
-	ldrs	1f
-	shll8	r7
+	mov.l	r8, @-r15
 
-	ldre	2f
-	add	#0x18, r7
+	mov.w	@r5+, r6    /* Input (1/2) */
+	sub	r2, r7
 
-	/* CHECK: 4-alignment here */
+	mov.w	@r5+, r3    /* Input (2/2) */
+	sub	r2, r7
 
-.texture:
-	mov.w	@r5+, r2 /* Columns */
-	mov	r7, r8
+	mov.w	@r5+, r4    /* Output offset */
 
-	mov.l	@r5+, r3 /* Input */
+	mov.w	@r5+, r1    /* Lines */
+	shll16	r3
 
-	mov	r2, r0
-	mov.l	@r5+, r4 /* Output */
+	xtrct	r6, r3
+	mov.l	.fragment, r6
 
-	shll	r0
-	mov.w	@r5+, r1 /* Lines */
+	mov.w	@r5+, r8    /* Input stride */
+	mov	#8, r0      /* Maximum width for naive method */
 
-	sub	r0, r8
-	mov.w	@r5+, r9 /* Input stride */
+	add	r6, r4
+	cmp/ge	r2, r0
+
+	bt.s	.naive
+	mov	#2, r0
+
+/* The following variations are named based on the parity of each parameter:
+   * w[eo] (width even, width odd)
+   * d[eo] (data even, data odd)
+   where even/odd means 4-aligned/2-aligned in terms of pointers.
+
+   When the destination and source have identical parity, the copy is pretty
+   direct and takes 2 cycles to copy 4 bytes. When they have opposite parity
+   however, longwords need to be rearranged, which is a problem: arithmetic
+   operations under a RAW dependency take 3 cycles, so there's no way to
+   complete the 4-byte copy in less than 4 cycles unless iterations are opened
+   and weaved, which would add too much sub-cases. So in this case the naive
+   method that copies 4 bytes in 4 cycles is used. A very heavy image renderer
+   like a tileset shader should consider the optimized route though.  */
+
+#define TEX2D_START()		\
+	ldrs	2f;		\
+	ldre	3f;		\
+				\
+1:	ldrc	r2;		\
+	dt	r1;		\
+
+#define TEX2D_END()		\
+	add	r7, r4;		\
+	bf.s	1b;		\
+	add	r8, r3;		\
+				\
+	rts;			\
+	mov.l	@r15+, r8
+
+.case_analysis:
+	/* Use naive method for opposite source/destination parity */
+	mov	r4, r6
+	xor	r3, r6
+	tst	r0, r6
+	bf	.naive
 
 	shlr	r2
+	bt	.wo
 
-.line:
-	ldrc	r2
-	dt	r1
+.we:
+	tst	r0, r4
+	bf	.we_do
 
-1:	movs.l	@r3+, x0
-2:	movs.l	x0, @r4+
+.we_de:
+	TEX2D_START()
+2:	movs.l	@r3+, x0
+3:	movs.l	x0, @r4+
+	TEX2D_END()
 
-	add	r8, r4
+.we_do:
+	add	#-1, r2
 
-	bf.s	.line
-	add	r9, r3
+	TEX2D_START()
+	movs.w	@r3+, x0
+	movs.w	x0, @r4+
 
-.end:
-	mov.l	@r15+, r9
-	rts
-	mov.l	@r15+, r8
+2:	movs.l	@r3+, x0
+3:	movs.l	x0, @r4+
+
+	movs.w	@r3+, x0
+	movs.w	x0, @r4+
+	TEX2D_END()
+
+.wo:
+	tst	r0, r4
+	bf	.wo_do
+
+.wo_de:
+	TEX2D_START()
+2:	movs.l	@r3+, x0
+3:	movs.l	x0, @r4+
+
+	movs.w	@r3+, x0
+	movs.w	x0, @r4+
+	TEX2D_END()
+
+.wo_do:
+	TEX2D_START()
+	movs.w	@r3+, x0
+	movs.w	x0, @r4+
+
+2:	movs.l	@r3+, x0
+3:	movs.l	x0, @r4+
+	TEX2D_END()
+
+/* Naive method for small widths and opposite source/destination parity */
+.naive:
+	TEX2D_START()
+2:	movs.w	@r3+, x0
+3:	movs.w	x0, @r4+
+	TEX2D_END()
+
+.align 4
+.fragment:
+	.long _azrp_frag
+_792:
+	.word	792

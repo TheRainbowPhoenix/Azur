@@ -16,9 +16,9 @@
 // fragment shaders.
 //
 // The command queue stores all rendering commands, split into fragments. Each
-// fragment needs to read through all commands to produce its output, and
-// because fragments are rendered in order, the sequence of commands must be
-// read several times, therefore stored.
+// fragment needs to read through a number of commands, and the order does not
+// match the order of API calls because each API call typically impacts several
+// fragments. Therefore commands need to be stored.
 //
 // Fragment shaders are the programs that render commands into graphics data
 // for each fragments. They are pretty similar to OpenGL shaders, in that they
@@ -115,26 +115,24 @@ void azrp_image(int x, int y, uint16_t *pixels, int w, int h, int stride);
 // use them, so they are safe to write to and reset when they're not running.
 //---
 
-/* This counter runs during command generation and enqueue operations, usually
-   between azrp_begin_frame() and azrp_render_frame(). */
+/* This counter runs during command generation and queue operations. */
 extern prof_t azrp_perf_cmdgen;
 
-/* This counter runs during the command sorting step, which occurs at the start
-   of azrp_render_frame(). */
+/* This counter runs during the command sorting step. */
 extern prof_t azrp_perf_sort;
 
-/* This counter runs during shader executions in arzp_render_frame(). */
+/* This counter runs during shader executions in arzp_render_fragments(). */
 extern prof_t azrp_perf_shaders;
 
 /* This counter runs during CPU transfers to the R61524 display. */
 extern prof_t azrp_perf_r61524;
 
-/* This counter runs during the whole azrp_frame_render() operation; it is the
-   sum of sort, shaders, r61524, plus some logic overhead. */
+/* This counter runs during the whole azrp_update() operation; it is the sum of
+   sort, shaders, r61524, plus some logic overhead. */
 extern prof_t azrp_perf_render;
 
 /* azrp_perf_clear(): Clear all performance counters
-   Generally you want to do this before azrp_frame_begin(). */
+   Generally you want to do this before azrp_update(). */
 void azrp_perf_clear(void);
 
 //---
@@ -172,12 +170,13 @@ struct azrp_shader_tex2d_command {
     int16_t columns;
     /* Already offset by start row and column */
     void *input;
-    /* Destination in XRAM */
-    void *output;
+    /* Destination in XRAM (offset) */
+    uint16_t output;
     /* Number of lines */
     int16_t lines;
     /* Distance between two lines (columns excluded) */
     int16_t stride;
-};
+
+} GPACKED(2);
 
 AZUR_END_DECLS

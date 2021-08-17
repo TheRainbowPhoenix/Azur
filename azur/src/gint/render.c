@@ -132,8 +132,13 @@ bool azrp_queue_command(void *command, size_t size)
     if(commands_length + size >= 8192)
         return false;
 
+    uint8_t *dst = YRAM + commands_length;
+    uint8_t *src = command;
+
+    for(size_t i = 0; i < size; i++)
+        dst[i] = src[i];
+
     commands_array[commands_count++] = commands_length;
-    memcpy(YRAM + commands_length, command, size);
     commands_length += size;
 
     return true;
