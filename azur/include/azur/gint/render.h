@@ -40,8 +40,9 @@ AZUR_BEGIN_DECLS
 
 /* arzp_shader_t: Type of shader functions
    * [uniforms] is a pointer to any data the shader might use as uniform.
-   * [command] is a structure of the shader's command type. */
-typedef void azrp_shader_t(void *uniforms, void *command);
+   * [command] is a structure of the shader's command type.
+   * [fragment] is a pointer to azrp_frag. */
+typedef void azrp_shader_t(void *uniforms, void *command, void *fragment);
 
 /* Video memory fragment used as rendering target (in XRAM). */
 extern uint16_t azrp_frag[];
@@ -73,6 +74,10 @@ extern uint16_t azrp_frag[];
 // save screenshots, or reuse commands, or add new commands and use the
 // already-sorted base, can use the low-level functions below which implement
 // steps 1, 3 and 4 individually.
+//
+// There are optional configuration calls that can be performed within step 1;
+// the configuration is retained from frame to frame, so it may be enough to
+// set it only once.
 //---
 
 /* azrp_update(): Sort commands, render a frame, and starts another one */
@@ -88,24 +93,98 @@ void azrp_sort_commands(void);
 void azrp_render_fragments(void);
 
 //---
+// Configuration calls
+//
+// The following configuration options can be changed during step 1, so either
+// along with arzp_sort_commands(), or just after azrp_update().
+//
+// Changing display settings usually requires updating the uniforms of shaders.
+// See the details of each shader.
+//
+// Most settings are exposed as global variables. This is for read-only access;
+// if you modify the variables directly you will get garbage.
+//---
+
+/* Current super-scaling factor. */
+extern int azrp_scale;
+/* Width and height of display (based on scale). */
+extern int azrp_width, azrp_height;
+/* Number of fragments in a frame (affected by configuration). */
+extern int azrp_frag_count;
+/* Offset of first fragment. */
+extern int azrp_frag_offset;
+
+/* azrp_config_scale(): Select the renderer's super-scaling factor
+
+   This pipeline supports integer upscaling by factors of x1, x2 and x3. Unlike
+   the traditional VRAM approach, upscaling in this pipeline is fundamentally
+   faster on every level, since every bit of graphics data can be handled on an
+   actually smaller resolution, leaving the pixel duplication to the display
+   transfer. This is because efficient transfers to the display in this system
+   are performed by CPU, which is much more versatile than the DMA.
+
+   The settings on each mode are as follow:
+
+   * x1: Display resolution: 396x224
+         Fragment size: 8 rows (6336 bytes)
+         Number of fragments: 28 (29 if an offset is used)
+         Total size of graphics data: 177.408 kB
+
+   * x2: Display resolution: 198x112
+         Fragment size: 16 rows (6336 bytes)
+         Number of fragments 7 (8 if an offset if used)
+         Total size of graphics data: 44.352 kB
+
+   * x3: Display resolution: 132x75 (last row only has 2/3 pixels)
+         Fragment size: 16 rows (4224 bytes)
+         Number of fragments: 5 (sometimes 6 if an offset is used)
+         Total size of graphics data: 19.800 kB
+
+   As one would know when playing modern video games, super-resolution is one
+   of the most useful ways to increase performance. The reduced amount of
+   graphics data (either 4 or 9 times the fullscreen amount) has a huge impact
+   on the rendering process. */
+void azrp_config_scale(int scale);
+
+/* azrp_config_frag_offset(): Offset fragments along the y-axis
+
+   This call changes the alignment of fragments along the y-axis, so that the
+   first fragments starts somewhere above the screen. This tends to add one
+   additional fragment for the whole screen to be covered.
+
+   The primary use of this feature is to align grid-based frames with
+   fragments. As a prototypical example, top-down games using a tileset spend
+   most of the display surface showing the tiled map, so it's pretty beneficial
+   to align fragments on map rows so that each fragment handles only one row,
+   which makes the shader simpler and faster, uses less commands, and even
+   simplifies memory access patterns a little bit.
+
+   Another use is to align the x3 mode roughly to the center of the screen, to
+   emulate the 128x64 resolution of black-and-white models with 4 fragments.
+
+   @offset  Fragment offset along the y-axis (0 ... height of fragment-1). */
+void azrp_config_frag_offset(int offset);
+
+//---
 // Standard shaders
 //---
 
-enum {
-    /* Clears the entire output with a single color */
-    AZRP_SHADER_CLEAR = 0,
-    /* Renders RGB565 textures/images */
-    AZRP_SHADER_TEX2D,
-
-    /* First user-attributable ID */
-    AZRP_SHADER_USER,
-};
+ /* Clears the entire output with a single color */
+extern uint8_t AZRP_SHADER_CLEAR;
+ /* Renders RGB565 textures/images */
+extern uint8_t AZRP_SHADER_TEX2D;
 
 /* azrp_clear(): Clear output [ARZP_SHADER_CLEAR] */
 void azrp_clear(uint16_t color);
 
 /* azrp_image(): Queue image command [AZRP_SHADER_TEX2D] */
 void azrp_image(int x, int y, uint16_t *pixels, int w, int h, int stride);
+
+/* Functions to update uniforms for these shaders. You should call them when:
+   * AZRP_SHADER_CLEAR: Changing super-scaling settings.
+   * AZRP_SHADER_TEX2D: Changing super-scaling or or fragment offsets. */
+void azrp_shader_clear_configure(void);
+void azrp_shader_tex2d_configure(void);
 
 //---
 // Performance indicators
@@ -142,12 +221,19 @@ void azrp_perf_clear(void);
 /* azrp_register_shader(): Register a new command type and its shader program
 
    This function adds the specified shader program to the program array, and
-   returns the corresponding command type (which is AZRP_SHADER_USER plus some
-   value). Adding new shaders is useful for specialized rendering options (eg.
-   tiles with fixed size) or new graphical effects.
+   returns the corresponding command type. Adding new shaders is useful for
+   specialized rendering options (eg. tiles with fixed size) or new graphical
+   effects.
 
    If the maximum number shaders is exceeded, returns -1. */
 int azrp_register_shader(azrp_shader_t *program);
+
+/* azrp_set_uniforms(): Set a shader's uniforms pointer
+
+   If the shader has less than 4 bytes of uniform data, an integer may be
+   passed as the address; there is no requirement that the pointer be aligned
+   or even points to valid memory. */
+void azrp_set_uniforms(int shader_id, void *uniforms);
 
 /* azrp_queue_command(): Add a new command to be rendered next frame
 

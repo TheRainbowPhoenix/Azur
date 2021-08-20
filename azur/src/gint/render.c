@@ -11,23 +11,25 @@
 /* 8 rows of video memory, occupying 6338/8192 bytes of XRAM. */
 GXRAM GALIGNED(32) uint16_t azrp_frag[DWIDTH * 8];
 
+/* Super-scaling factor, width and height of output. */
+int azrp_scale;
+int azrp_width, azrp_height;
+/* Offset of first fragment for alignment, and number of fragments. */
+int azrp_frag_offset;
+int azrp_frag_count;
+
 /* Number and total size of queued commands. */
 GXRAM int commands_count = 0, commands_length = 0;
 
 /* Array of pointers to queued commands (stored as an offset into YRAM). */
 GXRAM uint16_t commands_array[AZRP_MAX_COMMANDS];
 
-/* Default shader programs. */
-extern azrp_shader_t azrp_shader_tex2d;
-
-/* Array of shader programs. */
-GXRAM azrp_shader_t *shaders[AZRP_MAX_SHADERS] = {
-    [AZRP_SHADER_CLEAR]   = NULL, /* TODO: Clear shader */
-    [AZRP_SHADER_TEX2D]   = &azrp_shader_tex2d,
-};
+/* Array of shader programs and uniforms. */
+static azrp_shader_t *shaders[AZRP_MAX_SHADERS] = { NULL };
+static void *shader_uniforms[AZRP_MAX_SHADERS] = { NULL };
 
 /* Next free index in the shader program array. */
-GXRAM static uint16_t shaders_next = AZRP_SHADER_USER;
+GXRAM static uint16_t shaders_next = 0;
 
 /* Performance counters. */
 GXRAM prof_t azrp_perf_cmdgen;
@@ -86,7 +88,7 @@ void azrp_render_fragments(void)
         if(cmd[1] == frag) {
             if(shaders[cmd[0]]) {
                 prof_enter(azrp_perf_shaders);
-                shaders[cmd[0]](NULL, cmd);
+                shaders[cmd[0]](shader_uniforms[cmd[0]], cmd, azrp_frag);
                 prof_leave(azrp_perf_shaders);
             }
             cmd = YRAM + commands_array[++i];
@@ -96,7 +98,7 @@ void azrp_render_fragments(void)
             xram_frame(azrp_frag, 396 * 8);
             prof_leave(azrp_perf_r61524);
             frag++;
-            if(frag == 28) break;
+            if(frag >= azrp_frag_count) break;
         }
     }
 
@@ -108,6 +110,55 @@ void azrp_update(void)
     azrp_sort_commands();
     azrp_render_fragments();
     azrp_clear_commands();
+}
+
+//---
+// Configuration calls
+//---
+
+static void update_frag_count(void)
+{
+    if(azrp_scale == 1)
+        azrp_frag_count = 28 + (azrp_frag_offset > 0);
+    else if(azrp_scale == 2)
+        azrp_frag_count = 7 + (azrp_frag_offset > 0);
+    else if(azrp_scale == 3)
+        azrp_frag_count = 5 + (azrp_frag_offset > 5);
+}
+
+static void update_size(void)
+{
+    if(azrp_scale == 1)
+        azrp_width = 396, azrp_height = 198;
+    else if(azrp_scale == 2)
+        azrp_width = 198, azrp_height = 112;
+    else if(azrp_scale == 3)
+        azrp_width = 132, azrp_height = 75;
+}
+
+void azrp_config_scale(int scale)
+{
+    if(scale < 1 || scale > 3)
+        return;
+
+    azrp_scale = scale;
+    update_size();
+    update_frag_count();
+}
+
+void azrp_config_frag_offset(int offset)
+{
+    if(offset < 0)
+        return;
+
+    azrp_frag_offset = offset;
+    update_frag_count();
+}
+
+__attribute__((constructor))
+static void default_settings(void)
+{
+    azrp_config_scale(1);
 }
 
 //---
@@ -123,6 +174,16 @@ int azrp_register_shader(azrp_shader_t *program)
 
     shaders[shaders_next++] = program;
     return id;
+}
+
+void azrp_set_uniforms(int shader_id, void *uniforms)
+{
+    if((unsigned int)shader_id >= AZRP_MAX_SHADERS)
+        return;
+    if(shaders[shader_id] == NULL)
+        return;
+
+    shader_uniforms[shader_id] = uniforms;
 }
 
 bool azrp_queue_command(void *command, size_t size)

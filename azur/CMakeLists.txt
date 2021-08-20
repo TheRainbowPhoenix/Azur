@@ -28,6 +28,9 @@ endif()
 if(AZUR_GRAPHICS_GINT_CG)
   list(APPEND SOURCES
     src/gint/render.c
+    src/gint/shaders/clear.c
+    src/gint/shaders/clear.S
+    src/gint/shaders/tex2d.c
     src/gint/shaders/tex2d.S)
 endif()
 
