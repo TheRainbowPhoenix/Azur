@@ -113,6 +113,8 @@ extern int azrp_width, azrp_height;
 extern int azrp_frag_count;
 /* Offset of first fragment. */
 extern int azrp_frag_offset;
+/* Height of fragments. */
+extern int azrp_frag_height;
 
 /* azrp_config_scale(): Select the renderer's super-scaling factor
 
@@ -178,7 +180,11 @@ extern uint8_t AZRP_SHADER_TEX2D;
 void azrp_clear(uint16_t color);
 
 /* azrp_image(): Queue image command [AZRP_SHADER_TEX2D] */
-void azrp_image(int x, int y, uint16_t *pixels, int w, int h, int stride);
+void azrp_image(int x, int y, bopti_image_t const *image);
+
+/* azrp_subimage(): Queue image subsection command [AZRP_SHADER_TEX2D] */
+void azrp_subimage(int x, int y, bopti_image_t const *image,
+   int left, int top, int width, int height, int flags);
 
 /* Functions to update uniforms for these shaders. You should call them when:
    * AZRP_SHADER_CLEAR: Changing super-scaling settings.
@@ -254,15 +260,14 @@ struct azrp_shader_tex2d_command {
     uint8_t fragment_id;
     /* Pixels per line */
     int16_t columns;
-    /* Already offset by start row and column */
-    void *input;
+    /* Address of the image structure */
+    bopti_image_t const *image;
     /* Destination in XRAM (offset) */
     uint16_t output;
     /* Number of lines */
     int16_t lines;
-    /* Distance between two lines (columns excluded) */
-    int16_t stride;
-
-} GPACKED(2);
+    /* Already offset by start row and column */
+    void const *input;
+};
 
 AZUR_END_DECLS

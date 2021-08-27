@@ -17,6 +17,10 @@ int azrp_width, azrp_height;
 /* Offset of first fragment for alignment, and number of fragments. */
 int azrp_frag_offset;
 int azrp_frag_count;
+/* Height of fragment. */
+int azrp_frag_height;
+
+/* TODO: Either make command queue private or use azrp_ prefix */
 
 /* Number and total size of queued commands. */
 GXRAM int commands_count = 0, commands_length = 0;
@@ -48,26 +52,45 @@ void azrp_clear_commands(void)
     commands_length = 0;
 }
 
-static int compare_commands(void const *c1, void const *c2)
+/* Custom quick sort for commands */
+
+static inline int compare(int8_t *c1, int8_t *c2)
 {
-    uint16_t offset1 = *(uint16_t *)c1;
-    uint16_t offset2 = *(uint16_t *)c2;
+    int d = c1[1] - c2[1];
+    return (d ? d : c1 - c2);
+}
 
-    uint8_t *ptr1 = (uint8_t *)(0xe5017000 + offset1);
-    uint8_t *ptr2 = (uint8_t *)(0xe5017000 + offset2);
+static void cmdsort(int low, int high)
+{
+    if(low >= high) return;
 
-    int diff_fragments = (int)ptr1[1] - (int)ptr2[1];
-    if(diff_fragments) return diff_fragments;
+    int8_t *pivot = YRAM + commands_array[(low + high) >> 1];
 
-    return (int)offset1 - (int)offset2;
+    int i = low - 1;
+    int j = high + 1;
+
+    while(1) {
+        do i++;
+        while(compare(YRAM + commands_array[i], pivot) < 0);
+
+        do j--;
+        while(compare(YRAM + commands_array[j], pivot) > 0);
+
+        if(i >= j) break;
+
+        uint16_t tmp = commands_array[i];
+        commands_array[i] = commands_array[j];
+        commands_array[j] = tmp;
+    }
+
+    cmdsort(low, j);
+    cmdsort(j+1, high);
 }
 
 void azrp_sort_commands(void)
 {
     prof_enter(azrp_perf_sort);
-    /* TODO: azrp_sort_commands: Use a custom sorter */
-    qsort(commands_array, commands_count, sizeof commands_array[0],
-        compare_commands);
+    cmdsort(0, commands_count - 1);
     prof_leave(azrp_perf_sort);
 }
 
@@ -95,6 +118,7 @@ void azrp_render_fragments(void)
         }
         else {
             prof_enter(azrp_perf_r61524);
+            /* TODO: Consider xram_frame() by DMA in parallel? */
             xram_frame(azrp_frag, 396 * 8);
             prof_leave(azrp_perf_r61524);
             frag++;
@@ -129,11 +153,11 @@ static void update_frag_count(void)
 static void update_size(void)
 {
     if(azrp_scale == 1)
-        azrp_width = 396, azrp_height = 198;
+        azrp_width = 396, azrp_height = 198, azrp_frag_height = 8;
     else if(azrp_scale == 2)
-        azrp_width = 198, azrp_height = 112;
+        azrp_width = 198, azrp_height = 112, azrp_frag_height = 16;
     else if(azrp_scale == 3)
-        azrp_width = 132, azrp_height = 75;
+        azrp_width = 132, azrp_height = 75,  azrp_frag_height = 16;
 }
 
 void azrp_config_scale(int scale)

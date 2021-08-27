@@ -11,15 +11,7 @@ static void register_shader(void)
 
 void azrp_shader_clear_configure(void)
 {
-    int longs_in_fragment = 0;
-
-    if(azrp_scale == 1)
-        longs_in_fragment = (396 * 2) * 8 / 4;
-    else if(azrp_scale == 2)
-        longs_in_fragment = (198 * 2) * 16 / 4;
-    else if(azrp_scale == 3)
-        longs_in_fragment = (132 * 2) * 16 / 4;
-
+    int longs_in_fragment = (azrp_width * azrp_frag_height / 2);
     azrp_set_uniforms(AZRP_SHADER_CLEAR, (void *)longs_in_fragment);
 }
 
@@ -35,6 +27,8 @@ struct command {
 
 void azrp_clear(uint16_t color)
 {
+    prof_enter(azrp_perf_cmdgen);
+
     struct command cmd;
     cmd.shader_id = AZRP_SHADER_CLEAR;
     cmd.color = color;
@@ -43,4 +37,6 @@ void azrp_clear(uint16_t color)
         cmd.fragment_id = i;
         azrp_queue_command(&cmd, sizeof cmd);
     }
+
+    prof_leave(azrp_perf_cmdgen);
 }
