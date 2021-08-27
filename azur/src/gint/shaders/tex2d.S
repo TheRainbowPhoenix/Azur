@@ -1,20 +1,14 @@
 .global _azrp_shader_tex2d
 .align 4
 
-/* Profile values from bopti */
-#define PX_RGB565   0
-#define PX_RGB565A  1
-#define PX_P8       2
-#define PX_P4       3
-
 /* Register assignment
    r0: (temporary)
    r1: Lines
-   r2: Output
+   r2: Command queue; (temporary)
    r3: Input
    r4: [parameter] azrp_width*2; output stride
-   r5: [parameter] Command queue; (temporary)
-   r6: [parameter] azrp_frag; (temporary)
+   r5: [parameter] Command queue; Output
+   r6: [parameter] azrp_frag; alpha value or (temporary)
    r7: Columns
    r8: Input stride
    r9: Image profile */
@@ -23,38 +17,43 @@ _azrp_shader_tex2d:
 	add	#2, r5
 
 	mov.l	r9, @-r15
+	mov	r5, r2
 
-	mov.w	@r5+, r7    /* command.columns */
+	mov.w	@r2+, r7    /* command.columns */
 
-	mov.l	@r5+, r8    /* command.image */
+	mov.l	@r2+, r8    /* command.image */
 
-	mov.w	@r5+, r2    /* command.output (offset) */
+	mov.w	@r2+, r5    /* command.output (offset) */
 	sub	r7, r4
 
-	mov.w	@r5+, r1    /* command.lines */
+	mov.w	@r2+, r1    /* command.lines */
 	sub	r7, r4
 
 	mov.w	@r8+, r0    /* image.profile */
-	add	r6, r2
+	add	r6, r5
 
 	mov.w	@r8+, r6    /* image.alpha */
-	cmp/eq	#PX_P4, r0
 
 	mov.w	@r8, r8     /* image.width */
 
-	mov.l	@r5+, r3    /* command.input (pointer) */
+	mov.l	@r2+, r3    /* command.input (pointer) */
+	mov	r0, r2
 
+	mova	.formats, r0
+	shll2	r2
+
+	mov.l	@(r0, r2), r0
 	sub	r7, r8
 
-	bt.s	.format_P4
+	jmp	@r0
 	shll	r8
 
-	cmp/eq	#PX_P8, r0
-
-	bt	.format_P8
-	cmp/eq	#PX_RGB565A, r0
-
-	bt	.format_RGB565A
+.align 4
+.formats:
+	.long	_RGB565
+	.long	_RGB565A
+	.long	_P8
+	.long	_P4
 
 	/* Default below is .format_RGB565 */
 
@@ -74,7 +73,7 @@ _azrp_shader_tex2d:
 	dt	r1;		\
 
 #define TEX2D_END()		\
-	add	r4, r2;		\
+	add	r4, r5;		\
 	bf.s	1b;		\
 	add	r8, r3;		\
 				\
@@ -106,105 +105,108 @@ _azrp_shader_tex2d:
    tileset shader) should aim for that route though. Also, movua.l followed by
    mov.l is even slower (5 cycles). */
 
-.format_RGB565:
+_RGB565:
 	mov	#8, r0      /* Maximum width for naive method */
 	cmp/ge	r7, r0
 
-	bt.s	.naive
+	bt.s	_RGB565.naive
 	mov	#2, r0
 
 	/* Use naive method for opposite source/destination parity */
-	mov	r2, r6
+	mov	r5, r6
 	xor	r3, r6
 	tst	r0, r6
-	bf	.naive
+	bf	_RGB565.naive
 
 	shlr	r7
-	bt	.wo
+	bt	_RGB565.wo
 
-.we:
-	tst	r0, r2
-	bf	.we_do
+_RGB565.we:
+	tst	r0, r5
+	bf	_RGB565.we_do
 
-.we_de:
+_RGB565.we_de:
 	TEX2D_START()
 2:	movs.l	@r3+, x0
-3:	movs.l	x0, @r2+
+3:	movs.l	x0, @r5+
 	TEX2D_END()
 
-.we_do:
+_RGB565.we_do:
 	add	#-1, r7
 
 	TEX2D_START()
 	movs.w	@r3+, x0
-	movs.w	x0, @r2+
+	movs.w	x0, @r5+
 
 2:	movs.l	@r3+, x0
-3:	movs.l	x0, @r2+
+3:	movs.l	x0, @r5+
 
 	movs.w	@r3+, x0
-	movs.w	x0, @r2+
+	movs.w	x0, @r5+
 	TEX2D_END()
 
-.wo:
-	tst	r0, r2
-	bf	.wo_do
+_RGB565.wo:
+	tst	r0, r5
+	bf	_RGB565.wo_do
 
-.wo_de:
+_RGB565.wo_de:
 	TEX2D_START()
 2:	movs.l	@r3+, x0
-3:	movs.l	x0, @r2+
+3:	movs.l	x0, @r5+
 
 	movs.w	@r3+, x0
-	movs.w	x0, @r2+
+	movs.w	x0, @r5+
 	TEX2D_END()
 
-.wo_do:
+_RGB565.wo_do:
 	TEX2D_START()
 	movs.w	@r3+, x0
-	movs.w	x0, @r2+
+	movs.w	x0, @r5+
 
 2:	movs.l	@r3+, x0
-3:	movs.l	x0, @r2+
+3:	movs.l	x0, @r5+
 	TEX2D_END()
 
 /* Naive method for small widths and opposite source/destination parity */
-.naive:
+_RGB565.naive:
 	TEX2D_START()
 2:	movs.w	@r3+, x0
-3:	movs.w	x0, @r2+
+3:	movs.w	x0, @r5+
 	TEX2D_END()
 
 /* [Rendering strategy for the RGB565A format]
 
    Since we have to check for the alpha value in each pixel, there's really no
    longword-based optimization. Instead, we just go as fast as possible with
-   each pixels, using DSP instructions. Branchless jump is pretty useful.
+   each pixels, using DSP instructions because conditional execution is pretty
+   damn good. This takes 4 cycles/pixel. I tried a number of reductions to
+   3 cycles/pixel but could not get that to work. */
 
-   TODO: Opening iterations will definitely save at least 1 cycle per pixel; it
-         just requires a subcase for extremely small images (width = 1). */
+_RGB565A:
+	shll16	r6
+	mov	#0x0004, r0 /* DC Zero mode */
 
-.format_RGB565A:
-	mov	r2, r5
+	lds	r6, y0
+
+	lds	r0, dsr
 
 	TEX2D_START()
-	/* In the comparison, DC=1 if x0 == image.alpha */
-2:	                         movs.w  @r3+, x0
-	     pcmp    x0, y0      movx.w  @r5, x1
-	dct  pcopy   x1, x0
-3:	     movx.w  x0, @r5+
+2:	                        movs.w  @r3+, x0
+	    pcmp    x0, y0      movx.w  @r5, x1
+	dct pcopy   x1, x0
+3:	                        movx.w  x0, @r5+
 	TEX2D_END()
 
 /* [Rendering strategy for the P8 format] */
-.format_P8:
+_P8:
 	TEX2D_START()
 2:
-3:
+3:	nop
 	TEX2D_END()
 
 /* [Rendering strategy for the P4 format] */
-.format_P4:
+_P4:
 	TEX2D_START()
 2:
-3:
+3:	nop
 	TEX2D_END()
