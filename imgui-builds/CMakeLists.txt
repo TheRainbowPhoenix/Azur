@@ -1,13 +1,3 @@
-# The GL3W library which is generated along in Dear ImGui
-if(AZUR_GRAPHICS_OPENGL_3_3)
-  add_library(gl3w
-    ../imgui/examples/libs/gl3w/GL/gl3w.c)
-  target_include_directories(gl3w PUBLIC
-    ../imgui/examples/libs/gl3w)
-  # Link with GLX for GL3X to find the extensions, and -ldl
-  target_link_libraries(gl3w INTERFACE PkgConfig::glx -ldl)
-endif()
-
 # The Dear ImGui library for SDL + OpenGL3/OpenGLES2
 set(SOURCES
   ../imgui/imgui.cpp
@@ -35,11 +25,9 @@ add_library(imgui ${SOURCES})
 target_compile_options(imgui PRIVATE -ffunction-sections)
 target_compile_options(imgui INTERFACE -Wl,--gc-sections)
 
-# Use the pre-built GL3W loader on desktop
+# Use the included ImGui loader on desktop
 if(AZUR_GRAPHICS_OPENGL_3_3)
-  target_compile_definitions(imgui PUBLIC
-    -DIMGUI_IMPL_OPENGL_LOADER_GL3W="GL/gl3w.h")
-  target_link_libraries(imgui PUBLIC gl3w)
+  # Nothing do, loader is built-in
 # Use the autonomous GLES 2.0 loader otherwise
 elseif(AZUR_GRAPHICS_OPENGL_ES_2_0)
   target_compile_definitions(imgui PUBLIC
