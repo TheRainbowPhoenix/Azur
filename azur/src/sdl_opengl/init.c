@@ -189,6 +189,14 @@ static Uint32 handler(Uint32 interval, void *param)
     return interval;
 }
 
+static int filter_event(void *userdata, SDL_Event *event)
+{
+    (void)userdata;
+    if(event->type == SDL_USEREVENT && event->user.code == ml_event)
+        return 0;
+    return 1;
+}
+
 int azur_main_loop(
     void (*render)(void), int render_fps,
     int (*update)(void), int update_ups,
@@ -242,6 +250,8 @@ int azur_main_loop(
            "break" SDL_WaitEvent() without us needing to read from the queue
            (which would take events away from the user). */
         SDL_WaitEvent(NULL);
+        /* Remove that unneeded event */
+        SDL_FilterEvents(filter_event, NULL);
     }
 
     return 0;
