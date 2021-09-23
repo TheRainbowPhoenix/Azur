@@ -18,10 +18,12 @@ void azrp_shader_tex2d_configure(void)
 //---
 
 /* Profile values from bopti */
-#define PX_RGB565   0
-#define PX_RGB565A  1
-#define PX_P8       2
-#define PX_P4       3
+#define PX_RGB565      0
+#define PX_RGB565A     1
+#define PX_P8          2
+#define PX_P4          3
+#define PX_P8_RGB565   4
+#define PX_P8_RGB565A  5
 
 void azrp_image(int x, int y, bopti_image_t const *image)
 {
@@ -43,8 +45,16 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
     cmd.image = image;
 
     int input_multiplier = 1;
-    if(image->profile == PX_P8) input_multiplier = 0;
-    if(image->profile == PX_P4) input_multiplier = -1;
+    void const *data = image->data;
+
+    if(image->profile == PX_P8 || image->profile == PX_P8_RGB565) {
+        input_multiplier = 0;
+        data += 512;
+    }
+    if(image->profile == PX_P4) {
+        input_multiplier = -1;
+        data += 32;
+    }
 
     /* This divides by azrp_frag_height */
     cmd.fragment_id = (azrp_scale == 1) ? (y >> 3) : (y >> 4);
@@ -53,8 +63,7 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
         cmd.lines = min(height, azrp_frag_height - (y & (azrp_frag_height-1)));
 
         int input_offset = (image->width * top + left) << input_multiplier;
-        cmd.input = (void *)image->data + input_offset;
-
+        cmd.input = data + input_offset;
         cmd.output = 2 * (azrp_width * (y & (azrp_frag_height-1)) + x);
 
         y += cmd.lines;

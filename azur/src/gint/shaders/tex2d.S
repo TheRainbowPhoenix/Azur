@@ -8,10 +8,10 @@
    r3: Input
    r4: [parameter] azrp_width*2; output stride
    r5: [parameter] Command queue; Output
-   r6: [parameter] azrp_frag; alpha value or (temporary)
+   r6: [parameter] azrp_frag; alpha value; (temporary)
    r7: Columns
-   r8: Input stride
-   r9: Image profile */
+   r8: Image pointer; (temporary)
+   r9: Input stride */
 _azrp_shader_tex2d:
 	mov.l	r8, @-r15
 	add	#2, r5
@@ -34,7 +34,7 @@ _azrp_shader_tex2d:
 
 	mov.w	@r8+, r6    /* image.alpha */
 
-	mov.w	@r8, r8     /* image.width */
+	mov.w	@r8+, r9    /* image.width */
 
 	mov.l	@r2+, r3    /* command.input (pointer) */
 	mov	r0, r2
@@ -42,11 +42,12 @@ _azrp_shader_tex2d:
 	mova	.formats, r0
 	shll2	r2
 
+	/* Stall cycle */
+
 	mov.l	@(r0, r2), r0
-	sub	r7, r8
 
 	jmp	@r0
-	shll	r8
+	sub	r7, r9
 
 .align 4
 .formats:
@@ -54,29 +55,29 @@ _azrp_shader_tex2d:
 	.long	_RGB565A
 	.long	_P8
 	.long	_P4
-
-	/* Default below is .format_RGB565 */
+	.long	_P8_RGB565
 
 /* [Loop macros]
 
    The following macros implement the main loop of the image renderer.
    * Each line is rendered in the tight loop between 2: and 3: (both included).
-   * r2 is the output (with stride r4, in bytes)
-   * r3 is the input (with stride r8, in bytes)
+   * r5 is the output (with stride r4, in bytes)
+   * r3 is the input (with stride r9, in bytes)
    * There are r1 rows with r7 iterations each */
 
 #define TEX2D_START()		\
 	ldrs	2f;		\
 	ldre	3f;		\
-				\
-1:	ldrc	r7;		\
-	dt	r1;		\
+1:	ldrc	r7
 
-#define TEX2D_END()		\
+#define TEX2D_END_NORET()	\
+	dt	r1;		\
 	add	r4, r5;		\
 	bf.s	1b;		\
-	add	r8, r3;		\
-				\
+	add	r9, r3
+
+#define TEX2D_END()		\
+	TEX2D_END_NORET();	\
 	mov.l	@r15+, r9;	\
 	rts;			\
 	mov.l	@r15+, r8
@@ -94,7 +95,7 @@ _azrp_shader_tex2d:
    When the destination and source have identical parity, the d[eo] variation
    can be defined. In this case the copy is pretty direct, it's a longword copy
    and it takes 2 cycles to copy 4 bytes, plus some extra at the edges if the
-   start or end address if 2-aligned.
+   start or end address is 2-aligned.
 
    However, when they have opposite parity, each longword read matches up with
    a 2-aligned write (or vice-versa). Rearranging words with arithmetic does
@@ -108,6 +109,8 @@ _azrp_shader_tex2d:
 _RGB565:
 	mov	#8, r0      /* Maximum width for naive method */
 	cmp/ge	r7, r0
+
+	shll	r9
 
 	bt.s	_RGB565.naive
 	mov	#2, r0
@@ -178,13 +181,15 @@ _RGB565.naive:
 
    Since we have to check for the alpha value in each pixel, there's really no
    longword-based optimization. Instead, we just go as fast as possible with
-   each pixels, using DSP instructions because conditional execution is pretty
+   each pixel, using DSP instructions because conditional execution is pretty
    damn good. This takes 4 cycles/pixel. I tried a number of reductions to
    3 cycles/pixel but could not get that to work. */
 
 _RGB565A:
 	shll16	r6
 	mov	#0x0004, r0 /* DC Zero mode */
+
+	shll	r9
 
 	lds	r6, y0
 
@@ -197,11 +202,151 @@ _RGB565A:
 3:	                        movx.w  x0, @r5+
 	TEX2D_END()
 
-/* [Rendering strategy for the P8 format] */
+/* [Rendering strategy for the P8 format]
+
+   The work needed for each pixel gets more difficult as we go. In P8 there is
+   both a palette indexing step (which induces some latency when moving values
+   read from memory to the ALU, unlike RGB565), and an alpha comparison check.
+
+   The rendering uses a 2-interwoven open loop. This reduces stall cycles and
+   increases parallelism. Dealing with non-multiple widths is annoying as
+   usual. Instead this routine avoids the clipping problem by overwriting then
+   restoring the next pixel. (A delightfully smart workaround if you ask me.)
+
+   Unless I have missed something this routine achieves 5.5 cycles/pixel.
+
+   The format is not extremely friendly. It has alpha for all images, and uses
+   a non-zero value for it, which burns a register. Palette indices are
+   unsigned, which requires an extu.b even though the palette could be indexed
+   with signed values by moving the pointer. Also the palette always takes up
+   512 bytes even when a low amount of colors is used.
+
+   The P8_RGB565 and P8_RGB565A address these issues and supplant P8. In the
+   interim this version of P8 is reasonably elegant despite ample extra
+   registers and initial computations. */
 _P8:
+	mov.l	r13, @-r15
+	add	#2, r8 /* Palette */
+
+	mov	r7, r13
+	shlr	r7
+
+	mov.l	r12, @-r15
+	movt	r12
+
+	mov.l	r11, @-r15
+	add	r12, r7
+
+	mov.l	r10, @-r15
+	extu.b	r6, r6
+
+	shll	r13
+
+	add	#-1, r9
+
+	sub	r12, r9
+
+	sub	r12, r4
+
+	sub	r12, r4
+
+	add	r5, r13
+
 	TEX2D_START()
-2:
-3:	nop
+
+	/* Save the first pixel after the line. It will be restored at the end
+	   of the line to correct the odd-width case where the 2-interwoven
+	   main loop writes an additional pixel. */
+	mov.w	@r13, r12
+
+	mov.b	@r3+, r0
+
+2:	/* 2-interwoven open main loop */
+	mov.b	@r3+, r10
+	extu.b	r0, r0
+
+	cmp/eq	r0, r6
+	mov.w	@r5+, r2
+
+	add	r0, r0 /* Don't use shll to keep T */
+	mov.w	@r5, r11
+
+	add	#-2, r5
+	bt.s	5f
+
+	extu.b	r10, r10
+	mov.w	@(r0,r8), r2
+
+     5:	cmp/eq	r10, r6
+
+	add	r10, r10 /* Don't use shll to keep T */
+	mov	r10, r0
+
+	mov.w	r2, @r5
+	add	#2, r5
+
+	bt	6f
+	mov.w	@(r0,r8), r11
+
+     6:	mov.b	@r3+, r0
+
+	mov.w	r11, @r5
+3:	add	#2, r5
+
+	/* Restore last pixel */
+	mov.w	r12, @r13
+	add	r4, r13
+
+	mov	r7, r6
+	shll2	r6
+
+	add	r6, r13
+
+	TEX2D_END_NORET()
+	mov.l	@r15+, r10
+	mov.l	@r15+, r11
+	mov.l	@r15+, r12
+	mov.l	@r15+, r13
+	mov.l	@r15+, r9
+	rts
+	mov.l	@r15+, r8
+
+/* [Rendering strategy for the P8 RGB565 format]
+
+   This format does not support alpha, lifting the requirement for comparisons,
+   branches and some register logic. The palette is also designed to support
+   signed indices (from -128 to 127). The interwoven setup becomes much more
+   practical as a result. */
+
+_P8_RGB565:
+	shlr	r7
+	/* TODO: Odd case */
+
+	mov.b	@r3+, r6
+	add	#-4, r5
+
+	shll	r6
+
+	TEX2D_START()
+2:	mov.b	@r3+, r2
+	add	#4, r5
+
+	shll	r2
+	mov	r6, r0
+
+	/* Stall for r0 */
+
+	mov.w	@(r0,r8), r0
+
+	mov.w	r0, @r5
+	mov	r2, r0
+
+	mov.b	@r3+, r6
+
+	mov.w	@(r0,r8), r0
+
+	mov.w	r0, @(2, r5)
+3:	shll	r6
 	TEX2D_END()
 
 /* [Rendering strategy for the P4 format] */
