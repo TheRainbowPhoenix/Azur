@@ -53,9 +53,10 @@ _azrp_shader_tex2d:
 .formats:
 	.long	_RGB565
 	.long	_RGB565A
-	.long	_P8
+	.long	_NOP
 	.long	_P4
 	.long	_P8_RGB565
+	.long	_P8_RGB565A
 
 /* [Loop macros]
 
@@ -105,7 +106,7 @@ _azrp_shader_tex2d:
    here (adding sub-cases); a super-heavy renderer with more hypotheses (like a
    tileset shader) should aim for that route though. Also, movua.l followed by
    mov.l is even slower (5 cycles). */
-
+.align 4
 _RGB565:
 	mov	#8, r0      /* Maximum width for naive method */
 	cmp/ge	r7, r0
@@ -183,8 +184,8 @@ _RGB565.naive:
    longword-based optimization. Instead, we just go as fast as possible with
    each pixel, using DSP instructions because conditional execution is pretty
    damn good. This takes 4 cycles/pixel. I tried a number of reductions to
-   3 cycles/pixel but could not get that to work. */
-
+   3 cycles/pixel but could not get any of them to work. */
+.align 4
 _RGB565A:
 	shll16	r6
 	mov	#0x0004, r0 /* DC Zero mode */
@@ -202,152 +203,216 @@ _RGB565A:
 3:	                        movx.w  x0, @r5+
 	TEX2D_END()
 
-/* [Rendering strategy for the P8 format]
+/* [Rendering strategy for the P8_RGB565A format]
 
-   The work needed for each pixel gets more difficult as we go. In P8 there is
-   both a palette indexing step (which induces some latency when moving values
-   read from memory to the ALU, unlike RGB565), and an alpha comparison check.
+   The work needed for each pixel gets more difficult as we go, with alpha
+   being the major culprit due to its additional comparisons, jumps, and
+   limited interweaving opportunities due to conditionally-executed code.
 
-   The rendering uses a 2-interwoven open loop. This reduces stall cycles and
-   increases parallelism. Dealing with non-multiple widths is annoying as
-   usual. Instead this routine avoids the clipping problem by overwriting then
-   restoring the next pixel. (A delightfully smart workaround if you ask me.)
+   Because arithmetic is unavoidable and there are 1-cycle delays between both
+   loading-arithmetic, and arithmetic-indexing pairs, the loop has 2 interwoven
+   iterations with an open structure. This fills the stall cycles and increases
+   parallelism significantly. Pure interweaving handbook.
 
-   Unless I have missed something this routine achieves 5.5 cycles/pixel.
+   Dealing with odd widths is a major pain as usual. Instead of adding logic to
+   handle the extra pixel separately, this routine lets the loop overwrite it,
+   then restores its original value afterwards - a delightfully elegant trick.
 
-   The format is not extremely friendly. It has alpha for all images, and uses
-   a non-zero value for it, which burns a register. Palette indices are
-   unsigned, which requires an extu.b even though the palette could be indexed
-   with signed values by moving the pointer. Also the palette always takes up
-   512 bytes even when a low amount of colors is used.
+   The P8 format is actually so bad that spending precious time grinding cycles
+   felt completely inappropriate without first refining it. This led to two new
+   variations, P8_RGB565 and P8_RGB565A, which fix the following problems.
 
-   The P8_RGB565 and P8_RGB565A address these issues and supplant P8. In the
-   interim this version of P8 is reasonably elegant despite ample extra
-   registers and initial computations. */
-_P8:
+   -> First there is alpha for all images, which is the most costly feature,
+      single-handedly accounting for half of the work per pixel. P8_RGB565
+      does no support alpha, which basically doubles performance.
+
+   -> Then, there is the alpha value itself. In P8 it is a variable (and fxconv
+      sets it to 0xff), which burns a register for the comparison and enforces
+      a fixed order between comparison and left-shift. P8_RGB565A always sets
+      an alpha value of 0x00 which lifts both constraints.
+
+   -> Then, there are palette indices. In P8 they are unsigned, which requires
+      an extu.b. In P8_RGB565 and P8_RGB565A they are signed, so the sign-
+      extended value of the mov.b can be used directly (once doubled). The
+      palette base is simply offset by 128 entries, with colors numbered
+      -128..-1 first and only then 0..127.
+
+   -> Finally, there's the palette itself. In P8 it always has 256 entries,
+      even when only a few are used. For small images this is a huge waste, so
+      P8_RGB565 and P8_RGB565A only store colors that are actually used.
+
+   P8_RGB565A achieves 4.5 cycles/pixel asymptotically, which is really good
+   compared to 4 cycles/pixel for RGB565A. */
+.align 4
+_P8_RGB565A:
 	mov.l	r13, @-r15
-	add	#2, r8 /* Palette */
+	add	#-2, r9 /* Input stride compensation for openness */
 
 	mov	r7, r13
 	shlr	r7
 
 	mov.l	r12, @-r15
-	movt	r12
-
-	mov.l	r11, @-r15
-	add	r12, r7
+	movt	r6
 
 	mov.l	r10, @-r15
-	extu.b	r6, r6
-
 	shll	r13
 
-	add	#-1, r9
+	mov.w	_P8_RGB565A.palette_distance, r0
+	add	r6, r7
 
-	sub	r12, r9
+	sub	r6, r9
 
-	sub	r12, r4
+	sub	r6, r4
 
-	sub	r12, r4
+	sub	r6, r4
+
+	add	r0, r8
 
 	add	r5, r13
+	mov	r7, r2
+
+	add	#-4, r5 /* Output offset compensation in the loop */
+
+	shll2	r2
+
+	add	r4, r2
+	nop /* 4-alignment */
 
 	TEX2D_START()
 
-	/* Save the first pixel after the line. It will be restored at the end
-	   of the line to correct the odd-width case where the 2-interwoven
-	   main loop writes an additional pixel. */
+	mov.b	@r3+, r6
+
+	/* Save next pixel for the odd-width case */
 	mov.w	@r13, r12
 
-	mov.b	@r3+, r0
-
-2:	/* 2-interwoven open main loop */
 	mov.b	@r3+, r10
-	extu.b	r0, r0
+	tst	r6, r6
 
-	cmp/eq	r0, r6
-	mov.w	@r5+, r2
+	/* 2-interwoven open main loop */
+2:	add	r6, r6
+	mov	r6, r0
 
-	add	r0, r0 /* Don't use shll to keep T */
-	mov.w	@r5, r11
-
-	add	#-2, r5
+	add	r10, r10
 	bt.s	5f
 
-	extu.b	r10, r10
-	mov.w	@(r0,r8), r2
+	tst	r10, r10
+	mov.w	@(r0,r8), r0
 
-     5:	cmp/eq	r10, r6
+	mov.w	r0, @(4,r5)
 
-	add	r10, r10 /* Don't use shll to keep T */
+     5: mov.b	@r3+, r6
 	mov	r10, r0
 
-	mov.w	r2, @r5
-	add	#2, r5
+	bt.s	6f
+	add	#4, r5
 
-	bt	6f
-	mov.w	@(r0,r8), r11
+	mov.w	@(r0,r8), r0
 
-     6:	mov.b	@r3+, r0
+	mov.w	r0, @(2,r5)
 
-	mov.w	r11, @r5
-3:	add	#2, r5
+     6:	mov.b	@r3+, r10
+3:	tst	r6, r6
 
 	/* Restore last pixel */
 	mov.w	r12, @r13
-	add	r4, r13
-
-	mov	r7, r6
-	shll2	r6
-
-	add	r6, r13
+	add	r2, r13
 
 	TEX2D_END_NORET()
 	mov.l	@r15+, r10
-	mov.l	@r15+, r11
 	mov.l	@r15+, r12
 	mov.l	@r15+, r13
 	mov.l	@r15+, r9
 	rts
 	mov.l	@r15+, r8
 
-/* [Rendering strategy for the P8 RGB565 format]
+_P8_RGB565A.palette_distance:
+	/* Distance between image pointer and palette array base */
+	.word	260
 
-   This format does not support alpha, lifting the requirement for comparisons,
-   branches and some register logic. The palette is also designed to support
-   signed indices (from -128 to 127). The interwoven setup becomes much more
-   practical as a result. */
+/* [Rendering strategy for the P8_RGB565 format]
 
+   See P8_RGB565A for format details. Removing the checks for transparency and
+   the jumps simplifies the instruction sequence and allows superior
+   parallelism because all paths are unconditional. This routines achieves
+   3 cycles/pixel asymptotically. */
+.align 4
 _P8_RGB565:
+	mov.l	r13, @-r15
+	add	#-2, r9 /* Input stride compensation for openness */
+
+	mov	r7, r13
 	shlr	r7
-	/* TODO: Odd case */
 
-	mov.b	@r3+, r6
-	add	#-4, r5
+	mov.l	r12, @-r15
+	movt	r6
 
-	shll	r6
+	mov.l	r10, @-r15
+	shll	r13
+
+	mov.w	_P8_RGB565.palette_distance, r0
+	add	r6, r7
+
+	sub	r6, r9
+
+	sub	r6, r4
+
+	sub	r6, r4
+
+	add	r0, r8
+
+	add	r5, r13
+
+	add	#-4, r5 /* Output offset compensation in the loop */
+	mov	r7, r2
+
+	shll2	r2
+
+	add	r4, r2
+	nop /* 4-alignment */
 
 	TEX2D_START()
-2:	mov.b	@r3+, r2
+
+	mov.b	@r3+, r0
+
+	/* Save next pixel for the odd-width case */
+	mov.w	@r13, r12
+
+	mov.b	@r3+, r10
+	shll	r0
+
+	/* 2-interwoven open main loop */
+2:	mov.b	@r3+, r6
+	shll	r10
+
+	mov.w	@(r0,r8), r0
+
+	mov.w	r0, @(4,r5)
+	mov	r10, r0
+
+	mov.b	@r3+, r10
 	add	#4, r5
 
-	shll	r2
-	mov	r6, r0
-
-	/* Stall for r0 */
-
 	mov.w	@(r0,r8), r0
+	shll	r6
 
-	mov.w	r0, @r5
-	mov	r2, r0
+	mov.w	r0, @(2,r5)
+3:	mov	r6, r0
 
-	mov.b	@r3+, r6
+	/* Restore last pixel */
+	mov.w	r12, @r13
+	add	r2, r13
 
-	mov.w	@(r0,r8), r0
+	TEX2D_END_NORET()
+	mov.l	@r15+, r10
+	mov.l	@r15+, r12
+	mov.l	@r15+, r13
+	mov.l	@r15+, r9
+	rts
+	mov.l	@r15+, r8
 
-	mov.w	r0, @(2, r5)
-3:	shll	r6
-	TEX2D_END()
+_P8_RGB565.palette_distance:
+	/* Distance between image pointer and palette array base */
+	.word	260
 
 /* [Rendering strategy for the P4 format] */
 _P4:
@@ -355,3 +420,11 @@ _P4:
 2:
 3:	nop
 	TEX2D_END()
+
+/* [Unsupported formats]
+
+   P8 is unsupported, use P8_RGB565 and P8_RGB565A. */
+_NOP:
+	mov.l	@r15+, r9
+	rts
+	mov.l	@r15+, r8

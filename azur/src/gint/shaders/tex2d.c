@@ -17,10 +17,9 @@ void azrp_shader_tex2d_configure(void)
 
 //---
 
-/* Profile values from bopti */
+/* Profile IDs */
 #define PX_RGB565      0
 #define PX_RGB565A     1
-#define PX_P8          2
 #define PX_P4          3
 #define PX_P8_RGB565   4
 #define PX_P8_RGB565A  5
@@ -47,11 +46,11 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
     int input_multiplier = 1;
     void const *data = image->data;
 
-    if(image->profile == PX_P8 || image->profile == PX_P8_RGB565) {
+    if(image->profile == PX_P8_RGB565 || image->profile == PX_P8_RGB565A) {
         input_multiplier = 0;
-        data += 512;
+        data += (image->data[0] * 2) + 2;
     }
-    if(image->profile == PX_P4) {
+    else if(image->profile == PX_P4) {
         input_multiplier = -1;
         data += 32;
     }
