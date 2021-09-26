@@ -268,6 +268,8 @@ struct azrp_shader_tex2d_command {
     int16_t lines;
     /* Already offset by start row and column */
     void const *input;
+    /* P4 modes only:  */
+    int16_t edge1, edge2;
 };
 
 AZUR_END_DECLS

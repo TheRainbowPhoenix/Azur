@@ -26,37 +26,36 @@ _azrp_shader_tex2d:
 	mov.w	@r2+, r5    /* command.output (offset) */
 	sub	r7, r4
 
-	mov.w	@r2+, r1    /* command.lines */
+	mov.w	@r8+, r9    /* image.profile */
 	sub	r7, r4
 
-	mov.w	@r8+, r0    /* image.profile */
+	mov.w	@r2+, r1    /* command.lines */
 	add	r6, r5
+
+	mov.l	@r2+, r3    /* command.input (pointer) */
+	shll2	r9
+
+	mova	.formats, r0
 
 	mov.w	@r8+, r6    /* image.alpha */
 
+	mov.l	@(r0,r9), r0
+
 	mov.w	@r8+, r9    /* image.width */
 
-	mov.l	@r2+, r3    /* command.input (pointer) */
-	mov	r0, r2
-
-	mova	.formats, r0
-	shll2	r2
-
-	/* Stall cycle */
-
-	mov.l	@(r0, r2), r0
-
 	jmp	@r0
+	/* Stall for r9 */
 	sub	r7, r9
 
 .align 4
 .formats:
 	.long	_RGB565
 	.long	_RGB565A
-	.long	_NOP
-	.long	_P4
+	.long	_NOP /* P8 */
+	.long	_P4_RGB565A /* =P4 */
 	.long	_P8_RGB565
 	.long	_P8_RGB565A
+	.long	_P4_RGB565
 
 /* [Loop macros]
 
@@ -414,15 +413,131 @@ _P8_RGB565.palette_distance:
 	/* Distance between image pointer and palette array base */
 	.word	260
 
-/* [Rendering strategy for the P4 format] */
-_P4:
+/* [Rendering strategy for the P4_RGB565A format]
+
+   This is the most complex format. Most of the remarks that apply to
+   P8_RGB565A also apply here, except that there are less opportunities to save
+   computation because nibbles must be extracted anyway.
+
+   The P4_RGB565A format is simply bopti's P4, but an additional variation
+   P4_RGB565 is specified to save on transparency handling, which is very
+   expensive.
+
+   The special nature of the nibble packing means the simplest loop form writes
+   2 pixels from a 2-aligned source image position in a single iteration. Other
+   structures don't even come close: selecting nibbles individually is folly,
+   while not interweaving is inefficient. So the whole point of this routine is
+   to forcibly align the subimage on a byte-aligned and never break that grid.
+
+   The command builder for P4 does this alignment before submitting the
+   command. Obviously the transform can cause one extra pixel to be overridden
+   on each side of every line. The command is thus extended with two edge
+   offsets indicating pixels to preserve at each end. When overwrites occurs,
+   the edge offsets point to the overwritten pixels so they can be restored.
+   Otherwise, they point to the next pixels and the restores are no-ops. See
+   the strategy used for managing interweaving in P8 formats for details.
+
+   TODO: Asymptotic performance */
+.align 4
+_P4_RGB565A:
+	mov.l	r10, @-r15
+	shlr	r9
+
+	mov.l	r11, @-r15
+	add	#-1, r9 /* Input stride compensation for openness */
+
+	mov.l	r12, @-r15
+	add	#2, r8 /* image.palette */
+
+	mov.w	@r2+, r11 /* command.edge1 */
+	shlr	r7
+
+	mov.w	@r2+, r12 /* command.edge2 */
+	mov	r5, r10
+
+	mov.l	r13, @-r15
+	shll	r11
+
+	mov.l	r14, @-r15
+	shll	r12
+
+	TEX2D_START()
+
+	mov	r10, r0
+	mov.b	@r3+, r6
+
+	/* Stall for r0 */
+
+	mov.w	@(r0,r11), r13
+
+	mov.w	@(r0,r12), r14
+
+	/* Main loop with 2 pixels sharing a single byte */
+
+2:	/* Stall for r6 */
+
+	shll	r6
+
+	mov	r6, r0
+	and	#0x1e, r0
+
+	tst	r0, r0
+
+	bt	4f
+	mov.w	@(r0,r8), r0
+
+	mov.w	r0, @(2,r5)
+     4:	shlr2	r6
+
+	shlr2	r6
+
+	mov	r6, r0
+	and	#0x1e, r0
+
+	tst	r0, r0
+
+	bt	5f
+	mov.w	@(r0,r8), r0
+
+	mov.w	r0, @r5
+
+     5: mov.b	@r3+, r6
+3:	add	#4, r5
+
+	mov	r10, r0
+	add	r7, r10
+
+	/* Stall for r0 */
+
+	mov.w	r13, @(r0,r11)
+	add	r7, r10
+
+	mov.w	r14, @(r0,r12)
+	add	r4, r10
+
+	add	r7, r10
+	add	r7, r10
+
+	TEX2D_END_NORET()
+	mov.l	@r15+, r14
+	mov.l	@r15+, r13
+	mov.l	@r15+, r12
+	mov.l	@r15+, r11
+	mov.l	@r15+, r10
+	mov.l	@r15+, r9
+	rts
+	mov.l	@r15+, r8
+
+/* [Rendering strategy for the P4_RGB565 format]
+   Same as P4_RGB565A without transparency checks (fairly straightforward). */
+.align 4
+_P4_RGB565:
 	TEX2D_START()
 2:
 3:	nop
 	TEX2D_END()
 
 /* [Unsupported formats]
-
    P8 is unsupported, use P8_RGB565 and P8_RGB565A. */
 _NOP:
 	mov.l	@r15+, r9
