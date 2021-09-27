@@ -1,4 +1,4 @@
-.global _azrp_shader_tex2d
+.global _azrp_shader_image
 .align 4
 
 /* Register assignment
@@ -12,7 +12,7 @@
    r7: Columns
    r8: Image pointer; (temporary)
    r9: Input stride */
-_azrp_shader_tex2d:
+_azrp_shader_image:
 	mov.l	r8, @-r15
 	add	#2, r5
 
@@ -64,19 +64,19 @@ _azrp_shader_tex2d:
    * r3 is the input (with stride r9, in bytes)
    * There are r1 rows with r7 iterations each */
 
-#define TEX2D_START()		\
+#define START()		\
 	ldrs	2f;		\
 	ldre	3f;		\
 1:	ldrc	r7
 
-#define TEX2D_END_NORET()	\
+#define END_NORET()	\
 	dt	r1;		\
 	add	r4, r5;		\
 	bf.s	1b;		\
 	add	r9, r3
 
-#define TEX2D_END()		\
-	TEX2D_END_NORET();	\
+#define END()		\
+	END_NORET();	\
 	mov.l	@r15+, r9;	\
 	rts;			\
 	mov.l	@r15+, r8
@@ -131,15 +131,15 @@ _RGB565.we:
 	bf	_RGB565.we_do
 
 _RGB565.we_de:
-	TEX2D_START()
+	START()
 2:	movs.l	@r3+, x0
 3:	movs.l	x0, @r5+
-	TEX2D_END()
+	END()
 
 _RGB565.we_do:
 	add	#-1, r7
 
-	TEX2D_START()
+	START()
 	movs.w	@r3+, x0
 	movs.w	x0, @r5+
 
@@ -148,36 +148,36 @@ _RGB565.we_do:
 
 	movs.w	@r3+, x0
 	movs.w	x0, @r5+
-	TEX2D_END()
+	END()
 
 _RGB565.wo:
 	tst	r0, r5
 	bf	_RGB565.wo_do
 
 _RGB565.wo_de:
-	TEX2D_START()
+	START()
 2:	movs.l	@r3+, x0
 3:	movs.l	x0, @r5+
 
 	movs.w	@r3+, x0
 	movs.w	x0, @r5+
-	TEX2D_END()
+	END()
 
 _RGB565.wo_do:
-	TEX2D_START()
+	START()
 	movs.w	@r3+, x0
 	movs.w	x0, @r5+
 
 2:	movs.l	@r3+, x0
 3:	movs.l	x0, @r5+
-	TEX2D_END()
+	END()
 
 /* Naive method for small widths and opposite source/destination parity */
 _RGB565.naive:
-	TEX2D_START()
+	START()
 2:	movs.w	@r3+, x0
 3:	movs.w	x0, @r5+
-	TEX2D_END()
+	END()
 
 /* [Rendering strategy for the RGB565A format]
 
@@ -199,12 +199,12 @@ _RGB565A:
 
 	lds	r0, dsr
 
-	TEX2D_START()
+	START()
 2:	                        movs.w  @r3+, x0
 	    pcmp    x0, y0      movx.w  @r5, x1
 	dct pcopy   x1, x0
 3:	                        movx.w  x0, @r5+
-	TEX2D_END()
+	END()
 
 /* [Rendering strategy for the P8_RGB565A format]
 
@@ -283,7 +283,7 @@ _P8_RGB565A:
 	add	r4, r2
 	nop /* 4-alignment */
 
-	TEX2D_START()
+	START()
 
 	mov.b	@r3+, r6
 
@@ -322,7 +322,7 @@ _P8_RGB565A:
 	mov.w	r12, @r13
 	add	r2, r13
 
-	TEX2D_END_NORET()
+	END_NORET()
 	mov.l	@r15+, r10
 	mov.l	@r15+, r12
 	mov.l	@r15+, r13
@@ -377,7 +377,7 @@ _P8_RGB565:
 	add	r4, r2
 	nop /* 4-alignment */
 
-	TEX2D_START()
+	START()
 
 	mov.b	@r3+, r0
 
@@ -409,7 +409,7 @@ _P8_RGB565:
 	mov.w	r12, @r13
 	add	r2, r13
 
-	TEX2D_END_NORET()
+	END_NORET()
 	mov.l	@r15+, r10
 	mov.l	@r15+, r12
 	mov.l	@r15+, r13
@@ -480,7 +480,7 @@ _P4_RGB565A:
 
 	add	#-4, r5
 
-	TEX2D_START()
+	START()
 
 	mov.b	@r3+, r6
 	mov	r0, r10
@@ -530,9 +530,9 @@ _P4_RGB565A:
 	add	r0, r10
 
 	mov	r10, r0
-	/* Parallelizes with [dt r1] expanded from TEX2D_END_NORET() */
+	/* Parallelizes with [dt r1] expanded from END_NORET() */
 
-	TEX2D_END_NORET()
+	END_NORET()
 	mov.l	@r15+, r14
 	mov.l	@r15+, r13
 	mov.l	@r15+, r12
@@ -574,7 +574,7 @@ _P4_RGB565:
 	add	#-4, r5
 	mov	#0x1e, r2
 
-	TEX2D_START()
+	START()
 
 	mov.b	@r3+, r6
 	mov	#-4, r10
@@ -618,9 +618,9 @@ _P4_RGB565:
 	add	r0, r10
 
 	mov	r10, r0
-	/* Parallelizes with [dt r1] expanded from TEX2D_END_NORET() */
+	/* Parallelizes with [dt r1] expanded from END_NORET() */
 
-	TEX2D_END_NORET()
+	END_NORET()
 	mov.l	@r15+, r14
 	mov.l	@r15+, r13
 	mov.l	@r15+, r12

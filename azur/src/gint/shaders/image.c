@@ -1,18 +1,18 @@
 #include <azur/gint/render.h>
 #include <gint/defs/util.h>
 
-uint8_t AZRP_SHADER_TEX2D = -1;
+uint8_t AZRP_SHADER_IMAGE = -1;
 
 __attribute__((constructor))
 static void register_shader(void)
 {
-    extern azrp_shader_t azrp_shader_tex2d;
-    AZRP_SHADER_TEX2D = azrp_register_shader(azrp_shader_tex2d);
+    extern azrp_shader_t azrp_shader_image;
+    AZRP_SHADER_IMAGE = azrp_register_shader(azrp_shader_image);
 }
 
-void azrp_shader_tex2d_configure(void)
+void azrp_shader_image_configure(void)
 {
-    azrp_set_uniforms(AZRP_SHADER_TEX2D, (void *)(2 * azrp_width));
+    azrp_set_uniforms(AZRP_SHADER_IMAGE, (void *)(2 * azrp_width));
 }
 
 //---
@@ -36,11 +36,11 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
     prof_enter(azrp_perf_cmdgen);
 
     if(!(flags & DIMAGE_NOCLIP)) {
-        /* TODO: tex2d: clip function */
+        /* TODO: image: clip function */
     }
 
-    struct azrp_shader_tex2d_command cmd;
-    cmd.shader_id = AZRP_SHADER_TEX2D;
+    struct azrp_shader_image_command cmd;
+    cmd.shader_id = AZRP_SHADER_IMAGE;
     cmd.columns = width;
     cmd.image = image;
 

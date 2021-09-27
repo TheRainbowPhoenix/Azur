@@ -30,8 +30,8 @@ if(AZUR_GRAPHICS_GINT_CG)
     src/gint/render.c
     src/gint/shaders/clear.c
     src/gint/shaders/clear.S
-    src/gint/shaders/tex2d.c
-    src/gint/shaders/tex2d.S)
+    src/gint/shaders/image.c
+    src/gint/shaders/image.S)
 endif()
 
 add_library(azur STATIC ${SOURCES})

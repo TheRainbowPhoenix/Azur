@@ -174,23 +174,23 @@ void azrp_config_frag_offset(int offset);
  /* Clears the entire output with a single color */
 extern uint8_t AZRP_SHADER_CLEAR;
  /* Renders RGB565 textures/images */
-extern uint8_t AZRP_SHADER_TEX2D;
+extern uint8_t AZRP_SHADER_IMAGE;
 
 /* azrp_clear(): Clear output [ARZP_SHADER_CLEAR] */
 void azrp_clear(uint16_t color);
 
-/* azrp_image(): Queue image command [AZRP_SHADER_TEX2D] */
+/* azrp_image(): Queue image command [AZRP_SHADER_IMAGE] */
 void azrp_image(int x, int y, bopti_image_t const *image);
 
-/* azrp_subimage(): Queue image subsection command [AZRP_SHADER_TEX2D] */
+/* azrp_subimage(): Queue image subsection command [AZRP_SHADER_IMAGE] */
 void azrp_subimage(int x, int y, bopti_image_t const *image,
    int left, int top, int width, int height, int flags);
 
 /* Functions to update uniforms for these shaders. You should call them when:
    * AZRP_SHADER_CLEAR: Changing super-scaling settings.
-   * AZRP_SHADER_TEX2D: Changing super-scaling or or fragment offsets. */
+   * AZRP_SHADER_IMAGE: Changing super-scaling or or fragment offsets. */
 void azrp_shader_clear_configure(void);
-void azrp_shader_tex2d_configure(void);
+void azrp_shader_image_configure(void);
 
 //---
 // Performance indicators
@@ -254,7 +254,7 @@ bool azrp_queue_command(void *command, size_t size);
 // Internal shader definitions (for reference; no API guarantee)
 //---
 
-struct azrp_shader_tex2d_command {
+struct azrp_shader_image_command {
     /* Shader ID and fragment number */
     uint8_t shader_id;
     uint8_t fragment_id;
