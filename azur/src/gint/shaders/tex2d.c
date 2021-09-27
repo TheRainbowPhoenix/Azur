@@ -44,17 +44,17 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
     cmd.columns = width;
     cmd.image = image;
 
-    int input_multiplier = 1;
-    void const *data = image->data;
+    int row_stride;
     size_t cmd_size = sizeof cmd - 4;
 
     if(image->profile == P8_RGB565 || image->profile == P8_RGB565A) {
-        input_multiplier = 0;
-        data += (image->data[0] * 2) + 2;
+        row_stride = image->width;
+        cmd.input = (void *)image->data + (image->data[0] * 2) + 2 +
+            top * row_stride + left;
     }
     else if(image->profile == P4_RGB565 || image->profile == P4_RGB565A) {
-        input_multiplier = -1;
-        data += 32;
+        row_stride = (image->width + 1) >> 1;
+        cmd.input = (void *)image->data + 32 + top * row_stride + (left >> 1);
 
         int odd_left  = left & 1;
         int odd_right = (left + width) & 1;
@@ -65,6 +65,10 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
         x -= odd_left;
         cmd_size += 4;
     }
+    else {
+        row_stride = image->width << 1;
+        cmd.input = (void *)image->data + top * row_stride + (left << 1);
+    }
 
     /* This divides by azrp_frag_height */
     cmd.fragment_id = (azrp_scale == 1) ? (y >> 3) : (y >> 4);
@@ -72,9 +76,6 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
     while(height > 0) {
         cmd.lines = min(height, azrp_frag_height - (y & (azrp_frag_height-1)));
 
-        int input_offset = image->width * top + left;
-        input_offset = (input_offset << (input_multiplier + 1)) >> 1;
-        cmd.input = data + input_offset;
         cmd.output = 2 * (azrp_width * (y & (azrp_frag_height-1)) + x);
 
         y += cmd.lines;
@@ -83,6 +84,7 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
 
         azrp_queue_command(&cmd, cmd_size);
         cmd.fragment_id++;
+        cmd.input += row_stride * cmd.lines;
     }
 
     prof_leave(azrp_perf_cmdgen);

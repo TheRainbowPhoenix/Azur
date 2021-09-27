@@ -44,8 +44,7 @@ _azrp_shader_tex2d:
 	mov.w	@r8+, r9    /* image.width */
 
 	jmp	@r0
-	/* Stall for r9 */
-	sub	r7, r9
+	nop
 
 .align 4
 .formats:
@@ -108,6 +107,8 @@ _azrp_shader_tex2d:
 .align 4
 _RGB565:
 	mov	#8, r0      /* Maximum width for naive method */
+	sub	r7, r9
+
 	cmp/ge	r7, r0
 
 	shll	r9
@@ -118,6 +119,7 @@ _RGB565:
 	/* Use naive method for opposite source/destination parity */
 	mov	r5, r6
 	xor	r3, r6
+
 	tst	r0, r6
 	bf	_RGB565.naive
 
@@ -189,6 +191,8 @@ _RGB565A:
 	shll16	r6
 	mov	#0x0004, r0 /* DC Zero mode */
 
+	sub	r7, r9
+
 	shll	r9
 
 	lds	r6, y0
@@ -245,18 +249,20 @@ _RGB565A:
 .align 4
 _P8_RGB565A:
 	mov.l	r13, @-r15
-	add	#-2, r9 /* Input stride compensation for openness */
+	sub	r7, r9
 
 	mov	r7, r13
-	shlr	r7
+	add	#-2, r9 /* Input stride compensation for openness */
 
 	mov.l	r12, @-r15
-	movt	r6
+	shlr	r7
 
 	mov.l	r10, @-r15
-	shll	r13
+	movt	r6
 
 	mov.w	_P8_RGB565A.palette_distance, r0
+	shll	r13
+
 	add	r6, r7
 
 	sub	r6, r9
@@ -337,18 +343,20 @@ _P8_RGB565A.palette_distance:
 .align 4
 _P8_RGB565:
 	mov.l	r13, @-r15
-	add	#-2, r9 /* Input stride compensation for openness */
+	sub	r7, r9
 
 	mov	r7, r13
-	shlr	r7
+	add	#-2, r9 /* Input stride compensation for openness */
 
 	mov.l	r12, @-r15
-	movt	r6
+	shlr	r7
 
 	mov.l	r10, @-r15
-	shll	r13
+	movt	r6
 
 	mov.w	_P8_RGB565.palette_distance, r0
+	shll	r13
+
 	add	r6, r7
 
 	sub	r6, r9
@@ -437,23 +445,32 @@ _P8_RGB565.palette_distance:
    Otherwise, they point to the next pixels and the restores are no-ops. See
    the strategy used for managing interweaving in P8 formats for details.
 
-   TODO: Asymptotic performance */
+   The only irregularity is image width, which the command builder cannot
+   modify. It is rounded up to the next multiple of 2, then halved. There is a
+   nice trick for this operation, which is [shlr rX] then adding T to rX. We
+   also need to add -1 for another adjustement, and both are combined into an
+   addc, which saves one add and one movt off the EX critical chain.
+
+   The main loop achieves 5 cycles/pixel. */
 .align 4
 _P4_RGB565A:
-	mov.l	r10, @-r15
 	shlr	r9
+	mov	#-1, r0
+
+	mov.l	r10, @-r15
+	addc	r0, r9
 
 	mov.l	r11, @-r15
-	add	#-1, r9 /* Input stride compensation for openness */
-
-	mov.l	r12, @-r15
-	add	#2, r8 /* image.palette */
-
-	mov.w	@r2+, r11 /* command.edge1 */
 	shlr	r7
 
+	mov.l	r12, @-r15
+	sub	r7, r9
+
+	mov.w	@r2+, r11 /* command.edge1 */
+	add	#2, r8 /* image.palette */
+
 	mov.w	@r2+, r12 /* command.edge2 */
-	mov	r5, r10
+	mov	r5, r0
 
 	mov.l	r13, @-r15
 	shll	r11
@@ -461,62 +478,59 @@ _P4_RGB565A:
 	mov.l	r14, @-r15
 	shll	r12
 
+	add	#-4, r5
+
 	TEX2D_START()
 
-	mov	r10, r0
 	mov.b	@r3+, r6
-
-	/* Stall for r0 */
+	mov	r0, r10
 
 	mov.w	@(r0,r11), r13
 
 	mov.w	@(r0,r12), r14
-
-	/* Main loop with 2 pixels sharing a single byte */
-
-2:	/* Stall for r6 */
-
 	shll	r6
 
-	mov	r6, r0
+	/* Main loop with 2 pixels sharing a single byte */
+2:	mov	r6, r0
 	and	#0x1e, r0
 
 	tst	r0, r0
 
-	bt	4f
-	mov.w	@(r0,r8), r0
-
-	mov.w	r0, @(2,r5)
-     4:	shlr2	r6
-
+	bt.s	4f
 	shlr2	r6
 
+	mov.w	@(r0,r8), r0
+
+	mov.w	r0, @(6,r5)
+     4:	shlr2	r6
+
 	mov	r6, r0
 	and	#0x1e, r0
 
 	tst	r0, r0
+	mov.b	@r3+, r6
 
-	bt	5f
+	bt.s	5f
+	add	#4, r5
+
 	mov.w	@(r0,r8), r0
 
 	mov.w	r0, @r5
-
-     5: mov.b	@r3+, r6
-3:	add	#4, r5
+3:   5: shll	r6
 
 	mov	r10, r0
-	add	r7, r10
+	mov	r7, r10
 
-	/* Stall for r0 */
+	shll2	r10
 
 	mov.w	r13, @(r0,r11)
-	add	r7, r10
-
-	mov.w	r14, @(r0,r12)
 	add	r4, r10
 
-	add	r7, r10
-	add	r7, r10
+	mov.w	r14, @(r0,r12)
+	add	r0, r10
+
+	mov	r10, r0
+	/* Parallelizes with [dt r1] expanded from TEX2D_END_NORET() */
 
 	TEX2D_END_NORET()
 	mov.l	@r15+, r14
@@ -529,13 +543,92 @@ _P4_RGB565A:
 	mov.l	@r15+, r8
 
 /* [Rendering strategy for the P4_RGB565 format]
-   Same as P4_RGB565A without transparency checks (fairly straightforward). */
+   Same as P4_RGB565A without transparency checks (fairly straightforward). The
+   core loop runs in 3.5 cycles/pixel. */
 .align 4
 _P4_RGB565:
+	shlr	r9
+	mov	#-1, r0
+
+	mov.l	r10, @-r15
+	addc	r0, r9
+
+	mov.l	r11, @-r15
+	shlr	r7
+
+	mov.l	r12, @-r15
+	sub	r7, r9
+
+	mov.w	@r2+, r11 /* command.edge1 */
+	add	#2, r8 /* image.palette */
+
+	mov.w	@r2+, r12 /* command.edge2 */
+	mov	r5, r0
+
+	mov.l	r13, @-r15
+	shll	r11
+
+	mov.l	r14, @-r15
+	shll	r12
+
+	add	#-4, r5
+	mov	#0x1e, r2
+
 	TEX2D_START()
-2:
-3:	nop
-	TEX2D_END()
+
+	mov.b	@r3+, r6
+	mov	#-4, r10
+
+	mov.l	r0, @-r15
+
+	mov.w	@(r0,r11), r13
+
+	mov.w	@(r0,r12), r14
+	shll	r6
+
+	/* Main loop with 2 pixels sharing a single byte */
+2:	mov	r6, r0
+	and	#0x1e, r0
+
+	shld	r10, r6
+
+	mov.w	@(r0,r8), r0
+	and	r2, r6
+
+	mov.w	r0, @(6,r5)
+	mov	r6, r0
+
+	mov.b	@r3+, r6
+	add	#4, r5
+
+	mov.w	@(r0,r8), r0
+
+	mov.w	r0, @r5
+3:	shll	r6
+
+	mov.l	@r15+, r0
+	mov	r7, r10
+
+	shll2	r10
+
+	mov.w	r13, @(r0,r11)
+	add	r4, r10
+
+	mov.w	r14, @(r0,r12)
+	add	r0, r10
+
+	mov	r10, r0
+	/* Parallelizes with [dt r1] expanded from TEX2D_END_NORET() */
+
+	TEX2D_END_NORET()
+	mov.l	@r15+, r14
+	mov.l	@r15+, r13
+	mov.l	@r15+, r12
+	mov.l	@r15+, r11
+	mov.l	@r15+, r10
+	mov.l	@r15+, r9
+	rts
+	mov.l	@r15+, r8
 
 /* [Unsupported formats]
    P8 is unsupported, use P8_RGB565 and P8_RGB565A. */
