@@ -73,18 +73,19 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
     /* This divides by azrp_frag_height */
     cmd.fragment_id = (azrp_scale == 1) ? (y >> 3) : (y >> 4);
 
+    /* These settings only apply to the first fragment */
+    int first_y = (y + azrp_frag_offset) & (azrp_frag_height - 1);
+    cmd.lines = azrp_frag_height - first_y;
+    cmd.output = 2 * (azrp_width * first_y + x);
+
     while(height > 0) {
-        cmd.lines = min(height, azrp_frag_height - (y & (azrp_frag_height-1)));
+        azrp_queue_command(&cmd, cmd_size, cmd.fragment_id);
 
-        cmd.output = 2 * (azrp_width * (y & (azrp_frag_height-1)) + x);
-
-        y += cmd.lines;
-        top += cmd.lines;
         height -= cmd.lines;
-
-        azrp_queue_command(&cmd, cmd_size);
         cmd.fragment_id++;
         cmd.input += row_stride * cmd.lines;
+        cmd.lines = min(height, azrp_frag_height);
+        cmd.output = 2 * x;
     }
 
     prof_leave(azrp_perf_cmdgen);

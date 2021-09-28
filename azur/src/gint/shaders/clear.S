@@ -1,3 +1,18 @@
+/* Azur's built-in shaders: <clear>
+
+   By far the easiest of all. The clear shader is a good benchmark for how fast
+   the rendering pipeline is. And it's pretty damn fast, clocking in at 400 µs
+   for a full-resolution 396x224 clear (compared to 6.1 ms for a VRAM clear by
+   CPU or 2.5 ms by DMA).
+
+   Because this is performed by CPU and therefore versatile, there are many
+   variations with more complex patterns that will perform at the same speed.
+   A gray tiled background for transparency in image viewing comes to mind, for
+   example.
+
+   Affected region: full-screen
+   Asymptotic performance: 0.5 cycle/pixel */
+
 .global _azrp_shader_clear
 .align 4
 

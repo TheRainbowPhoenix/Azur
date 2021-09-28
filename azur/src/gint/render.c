@@ -8,7 +8,8 @@
 
 #define YRAM ((void *)0xe5017000)
 
-/* 8 rows of video memory, occupying 6338/8192 bytes of XRAM. */
+/* 8 rows of video memory, occupying 6338/8192 bytes of XRAM.
+   TODO: Extend this to 16 rows, and move the rest to RAM */
 GXRAM GALIGNED(32) uint16_t azrp_frag[DWIDTH * 8];
 
 /* Super-scaling factor, width and height of output. */
@@ -26,11 +27,11 @@ int azrp_frag_height;
 GXRAM int commands_count = 0, commands_length = 0;
 
 /* Array of pointers to queued commands (stored as an offset into YRAM). */
-GXRAM uint16_t commands_array[AZRP_MAX_COMMANDS];
+GXRAM uint32_t commands_array[AZRP_MAX_COMMANDS];
 
 /* Array of shader programs and uniforms. */
-static azrp_shader_t *shaders[AZRP_MAX_SHADERS] = { NULL };
-static void *shader_uniforms[AZRP_MAX_SHADERS] = { NULL };
+GXRAM static azrp_shader_t *shaders[AZRP_MAX_SHADERS] = { NULL };
+GXRAM static void *shader_uniforms[AZRP_MAX_SHADERS] = { NULL };
 
 /* Next free index in the shader program array. */
 GXRAM static uint16_t shaders_next = 0;
@@ -54,31 +55,25 @@ void azrp_clear_commands(void)
 
 /* Custom quick sort for commands */
 
-static inline int compare(int8_t *c1, int8_t *c2)
-{
-    int d = c1[1] - c2[1];
-    return (d ? d : c1 - c2);
-}
-
 static void cmdsort(int low, int high)
 {
     if(low >= high) return;
 
-    int8_t *pivot = YRAM + commands_array[(low + high) >> 1];
+    uint32_t pivot = commands_array[(low + high) >> 1];
 
     int i = low - 1;
     int j = high + 1;
 
     while(1) {
         do i++;
-        while(compare(YRAM + commands_array[i], pivot) < 0);
+        while(commands_array[i] < pivot);
 
         do j--;
-        while(compare(YRAM + commands_array[j], pivot) > 0);
+        while(commands_array[j] > pivot);
 
         if(i >= j) break;
 
-        uint16_t tmp = commands_array[i];
+        uint32_t tmp = commands_array[i];
         commands_array[i] = commands_array[j];
         commands_array[j] = tmp;
     }
@@ -89,44 +84,48 @@ static void cmdsort(int low, int high)
 
 void azrp_sort_commands(void)
 {
-    prof_enter(azrp_perf_sort);
+    prof_enter_norec(azrp_perf_sort);
     cmdsort(0, commands_count - 1);
-    prof_leave(azrp_perf_sort);
+    prof_leave_norec(azrp_perf_sort);
 }
+
+int azrp_commands_total;
 
 void azrp_render_fragments(void)
 {
-    prof_enter(azrp_perf_render);
+    prof_enter_norec(azrp_perf_render);
+
+    azrp_commands_total = 0;
 
     int i = 0;
     int frag = 0;
+    uint32_t next_frag_threshold = (frag + 1) << 16;
+    uint32_t cmd = commands_array[i];
 
-    uint8_t *cmd = (uint8_t *)YRAM + commands_array[i];
-
-    prof_enter(azrp_perf_r61524);
+    prof_enter_norec(azrp_perf_r61524);
     r61524_start_frame(0, 244);
-    prof_leave(azrp_perf_r61524);
+    prof_leave_norec(azrp_perf_r61524);
 
     while(1) {
-        if(cmd[1] == frag) {
-            if(shaders[cmd[0]]) {
-                prof_enter(azrp_perf_shaders);
-                shaders[cmd[0]](shader_uniforms[cmd[0]], cmd, azrp_frag);
-                prof_leave(azrp_perf_shaders);
-            }
-            cmd = YRAM + commands_array[++i];
+        while(cmd < next_frag_threshold && i < commands_count) {
+            azrp_commands_total++;
+            uint8_t *data = (uint8_t *)YRAM + (cmd & 0xffff);
+            prof_enter_norec(azrp_perf_shaders);
+            shaders[data[0]](shader_uniforms[data[0]], data, azrp_frag);
+            prof_leave_norec(azrp_perf_shaders);
+            cmd = commands_array[++i];
         }
-        else {
-            prof_enter(azrp_perf_r61524);
-            /* TODO: Consider xram_frame() by DMA in parallel? */
-            xram_frame(azrp_frag, 396 * 8);
-            prof_leave(azrp_perf_r61524);
-            frag++;
-            if(frag >= azrp_frag_count) break;
-        }
+
+        /* TODO: Consider xram_frame() by DMA in parallel? */
+        prof_enter_norec(azrp_perf_r61524);
+        xram_frame(azrp_frag, 396 * 8);
+        prof_leave_norec(azrp_perf_r61524);
+
+        if(++frag >= azrp_frag_count) break;
+        next_frag_threshold += (1 << 16);
     }
 
-    prof_leave(azrp_perf_render);
+    prof_leave_norec(azrp_perf_render);
 }
 
 void azrp_update(void)
@@ -210,7 +209,7 @@ void azrp_set_uniforms(int shader_id, void *uniforms)
     shader_uniforms[shader_id] = uniforms;
 }
 
-bool azrp_queue_command(void *command, size_t size)
+bool azrp_queue_command(void *command, size_t size, int fragment)
 {
     if(commands_count >= AZRP_MAX_COMMANDS)
         return false;
@@ -223,7 +222,8 @@ bool azrp_queue_command(void *command, size_t size)
     for(size_t i = 0; i < size; i++)
         dst[i] = src[i];
 
-    commands_array[commands_count++] = commands_length;
+    commands_array[commands_count++] =
+        (fragment << 16) | commands_length;
     commands_length += size;
 
     return true;

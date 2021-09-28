@@ -1,3 +1,77 @@
+/* Azur's built-in shaders: <image>
+
+   If there ever was a fantastic piece of assembler engineering in my work up
+   to this point, this would be it. Every trick in the book is used here, from
+   clever instruction combinations, pipeline flow and tricky DSP abuse all the
+   way up to memory layout planning, transforms on loop structures, and most
+   critically superscalar parallelism.
+
+   While the performance of the shader is not *strictly* proportional to the
+   speed of the tightest loop, it's very close. The use of operand-bus XRAM for
+   graphics data, systematic alignment, and detailed pipeline stalling
+   measurements for common instruction sequences in gintctl allow very accurate
+   speed predictions to be made based on the tightness of the code.
+
+   The palette formats of bopti have been refined for the purpose of this
+   shader, with P8 being split into P8_RGB565A and P8_RGB565 with big changes,
+   and P4 being renamed P4_RGB565A with minimal changes along with a variation
+   aptly named P4_RGB565.
+
+   The asymptotic performance for each format is as follows:
+   * RGB565:      1    cycle/pixel if source and destination align
+                  2   cycles/pixel otherwise
+   * RGB565A:     4   cycles/pixel
+   * P8_RGB565A:  4.5 cycles/pixel
+   * P8_RGB565:   3   cycles/pixel
+   * P4_RGB565A:  5   cycles/pixel
+   * P4_RGB565:   3.5 cycles/pixel
+
+   Entirely documenting this code would take me hours, but some elements are
+   provided in the comments. Superscalar parallelism is most easily appreciated
+   by reading the two-page section 4.2 of the SH4AL-DSP manual. The other main
+   structural technique at play in this code is loop transforms.
+
+   Basically, a loop that loads a pixel, performs computations with it, and
+   writes the result is inefficient because of the RAW dependencies on most
+   operations (with full stall cycles between loads and computations, and
+   between computations and uses as addresses). Well-established loop
+   optimization literature has lots of techniques to help with this problem,
+   and I use two here:
+
+   * _Pipelining_ the loop consists in handling a single pixel over several
+     iterations by doing a little bit of work in each iteration. The data for
+     the pixel would move from register to register at each iteration, with the
+     loop code doing one stage's worth of computation on each register. (You
+     can view it as a diagonal iteration pattern in the pixel*instruction grid
+     if you like such visualizations.)
+
+     By increasing the number of pixels in the pipeline, a lot of independent
+     data can be obtained, reducing dependency pressure and allowing for
+     greater parallelism at the cost of more registers being used.
+
+     The use of pipelining in this shader is very modest, with 2 stages at
+     most, and usually only a couple of instructions being performed in advance
+     for the next pixel while the current one finishes processing. Register
+     assignments have some subtleties though since pressure is high overall.
+
+   * _Unrolling_ iterations of the loop consists in loading two (or more)
+     pixels at the start of each iteration so that we can work on one while
+     waiting for stalls and dependencies on the other.
+
+     Unlike pipelining, a loop iteration starts and ends with full pixels and
+     no work carries between iterations. Unrolling allows different pixels to
+     use different registers and generally better optimize the instruction
+     sequence, at the cost of only supporting pixel counts that are multipes of
+     the unrolling level.
+
+     Handling non-multiple sizes is the everlasting bane of unrolled loops,
+     sometimes requiring duplicate code. Smart maneuvers are used in P8 and P4
+     to only handle even sizes and neutralize unwanted pixels after the fact.
+
+   Both techniques are used simultaneously, with 2-unrolled 2-stage loops for
+   almost all formats (except RGB556A which performs DSP trickery).
+*/
+
 .global _azrp_shader_image
 .align 4
 
@@ -64,19 +138,20 @@ _azrp_shader_image:
    * r3 is the input (with stride r9, in bytes)
    * There are r1 rows with r7 iterations each */
 
-#define START()		\
+#define START()			\
+	nop; /* 4-alignment */	\
 	ldrs	2f;		\
 	ldre	3f;		\
 1:	ldrc	r7
 
-#define END_NORET()	\
+#define END_NORET()		\
 	dt	r1;		\
 	add	r4, r5;		\
 	bf.s	1b;		\
 	add	r9, r3
 
-#define END()		\
-	END_NORET();	\
+#define END()			\
+	END_NORET();		\
 	mov.l	@r15+, r9;	\
 	rts;			\
 	mov.l	@r15+, r8
@@ -100,10 +175,10 @@ _azrp_shader_image:
    a 2-aligned write (or vice-versa). Rearranging words with arithmetic does
    not help because of the stall cycle between loading a register and using it
    in the ALU, which makes the minimum time 4 cycles for 2 pixels (the same as
-   the word-based copy). Weaving iterations could help but would be too complex
-   here (adding sub-cases); a super-heavy renderer with more hypotheses (like a
-   tileset shader) should aim for that route though. Also, movua.l followed by
-   mov.l is even slower (5 cycles). */
+   the word-based copy). Unrolling iterations could help but would be too
+   complex here (adding sub-cases); a super-heavy renderer with more hypotheses
+   (like a tileset shader) should aim for that route though. Also, movua.l
+   followed by mov.l is even slower (5 cycles). */
 .align 4
 _RGB565:
 	mov	#8, r0      /* Maximum width for naive method */
@@ -130,12 +205,14 @@ _RGB565.we:
 	tst	r0, r5
 	bf	_RGB565.we_do
 
+/* This is 4-aligned */
 _RGB565.we_de:
 	START()
 2:	movs.l	@r3+, x0
 3:	movs.l	x0, @r5+
 	END()
 
+.align 4
 _RGB565.we_do:
 	add	#-1, r7
 
@@ -150,6 +227,7 @@ _RGB565.we_do:
 	movs.w	x0, @r5+
 	END()
 
+.align 4
 _RGB565.wo:
 	tst	r0, r5
 	bf	_RGB565.wo_do
@@ -163,6 +241,7 @@ _RGB565.wo_de:
 	movs.w	x0, @r5+
 	END()
 
+.align 4
 _RGB565.wo_do:
 	START()
 	movs.w	@r3+, x0
@@ -173,6 +252,7 @@ _RGB565.wo_do:
 	END()
 
 /* Naive method for small widths and opposite source/destination parity */
+.align 4
 _RGB565.naive:
 	START()
 2:	movs.w	@r3+, x0
@@ -210,12 +290,13 @@ _RGB565A:
 
    The work needed for each pixel gets more difficult as we go, with alpha
    being the major culprit due to its additional comparisons, jumps, and
-   limited interweaving opportunities due to conditionally-executed code.
+   limited optimization opportunities when unrolling due to conditionally-
+   executed code.
 
    Because arithmetic is unavoidable and there are 1-cycle delays between both
-   loading-arithmetic, and arithmetic-indexing pairs, the loop has 2 interwoven
-   iterations with an open structure. This fills the stall cycles and increases
-   parallelism significantly. Pure interweaving handbook.
+   loading-arithmetic, and arithmetic-indexing pairs, the loop has 2-unrolled
+   iterations with a 2-stage pipeline structure. This fills the stall cycles
+   and increases parallelism significantly. Pure loop optimization handbook.
 
    Dealing with odd widths is a major pain as usual. Instead of adding logic to
    handle the extra pixel separately, this routine lets the loop overwrite it,
@@ -252,7 +333,7 @@ _P8_RGB565A:
 	sub	r7, r9
 
 	mov	r7, r13
-	add	#-2, r9 /* Input stride compensation for openness */
+	add	#-2, r9 /* Input stride compensation for pipelining */
 
 	mov.l	r12, @-r15
 	shlr	r7
@@ -281,7 +362,6 @@ _P8_RGB565A:
 	shll2	r2
 
 	add	r4, r2
-	nop /* 4-alignment */
 
 	START()
 
@@ -293,7 +373,7 @@ _P8_RGB565A:
 	mov.b	@r3+, r10
 	tst	r6, r6
 
-	/* 2-interwoven open main loop */
+	/* 2-unrolled 2-stage main loop */
 2:	add	r6, r6
 	mov	r6, r0
 
@@ -346,7 +426,7 @@ _P8_RGB565:
 	sub	r7, r9
 
 	mov	r7, r13
-	add	#-2, r9 /* Input stride compensation for openness */
+	add	#-2, r9 /* Input stride compensation for pipelining */
 
 	mov.l	r12, @-r15
 	shlr	r7
@@ -375,7 +455,6 @@ _P8_RGB565:
 	shll2	r2
 
 	add	r4, r2
-	nop /* 4-alignment */
 
 	START()
 
@@ -387,11 +466,14 @@ _P8_RGB565:
 	mov.b	@r3+, r10
 	shll	r0
 
-	/* 2-interwoven open main loop */
+	/* 2-unrolled 2-stage main loop */
 2:	mov.b	@r3+, r6
 	shll	r10
 
 	mov.w	@(r0,r8), r0
+	/* This nop is not for show, it actually prevents the loop from slowing
+	   down to 7 cycles /i, probably due to instruction reads alignment. */
+	nop
 
 	mov.w	r0, @(4,r5)
 	mov	r10, r0
@@ -434,8 +516,8 @@ _P8_RGB565.palette_distance:
    The special nature of the nibble packing means the simplest loop form writes
    2 pixels from a 2-aligned source image position in a single iteration. Other
    structures don't even come close: selecting nibbles individually is folly,
-   while not interweaving is inefficient. So the whole point of this routine is
-   to forcibly align the subimage on a byte-aligned and never break that grid.
+   while not unrolling is inefficient. So the whole point of this routine is to
+   forcibly align the subimage on a byte-aligned and never break that grid.
 
    The command builder for P4 does this alignment before submitting the
    command. Obviously the transform can cause one extra pixel to be overridden
@@ -443,7 +525,7 @@ _P8_RGB565.palette_distance:
    offsets indicating pixels to preserve at each end. When overwrites occurs,
    the edge offsets point to the overwritten pixels so they can be restored.
    Otherwise, they point to the next pixels and the restores are no-ops. See
-   the strategy used for managing interweaving in P8 formats for details.
+   the strategy used for managing unrolling in P8 formats for details.
 
    The only irregularity is image width, which the command builder cannot
    modify. It is rounded up to the next multiple of 2, then halved. There is a
@@ -466,10 +548,10 @@ _P4_RGB565A:
 	mov.l	r12, @-r15
 	sub	r7, r9
 
-	mov.w	@r2+, r11 /* command.edge1 */
-	add	#2, r8 /* image.palette */
+	mov.w	@r2+, r11	/* command.edge1 */
+	add	#2, r8		/* image.palette */
 
-	mov.w	@r2+, r12 /* command.edge2 */
+	mov.w	@r2+, r12	/* command.edge2 */
 	mov	r5, r0
 
 	mov.l	r13, @-r15
@@ -479,6 +561,7 @@ _P4_RGB565A:
 	shll	r12
 
 	add	#-4, r5
+	nop	/* 4-alignment */
 
 	START()
 
@@ -559,10 +642,10 @@ _P4_RGB565:
 	mov.l	r12, @-r15
 	sub	r7, r9
 
-	mov.w	@r2+, r11 /* command.edge1 */
-	add	#2, r8 /* image.palette */
+	mov.w	@r2+, r11	/* command.edge1 */
+	add	#2, r8		/* image.palette */
 
-	mov.w	@r2+, r12 /* command.edge2 */
+	mov.w	@r2+, r12	/* command.edge2 */
 	mov	r5, r0
 
 	mov.l	r13, @-r15

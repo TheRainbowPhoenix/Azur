@@ -49,7 +49,7 @@ extern uint16_t azrp_frag[];
 
 /* Maximum number of commands that can be queued. (This is only one of two
    limits, the other being the size of the command data.) */
-#define AZRP_MAX_COMMANDS 512
+#define AZRP_MAX_COMMANDS 256
 
 /* Maximum number of shaders that can be defined. (This is a loose limit). */
 #define AZRP_MAX_SHADERS 32
@@ -212,8 +212,8 @@ extern prof_t azrp_perf_shaders;
 /* This counter runs during CPU transfers to the R61524 display. */
 extern prof_t azrp_perf_r61524;
 
-/* This counter runs during the whole azrp_update() operation; it is the sum of
-   sort, shaders, r61524, plus some logic overhead. */
+/* This counter runs during rendering; it is the sum of shaders and r61524,
+   plus some logic overhead. */
 extern prof_t azrp_perf_render;
 
 /* azrp_perf_clear(): Clear all performance counters
@@ -243,12 +243,10 @@ void azrp_set_uniforms(int shader_id, void *uniforms);
 
 /* azrp_queue_command(): Add a new command to be rendered next frame
 
-   The command must be a structure starting with an 8-bit shader ID and an
-   8-bit fragment ID.
-
-   Returns true on success, false if the maximum amount of commands or command
-   memory is exceeded. */
-bool azrp_queue_command(void *command, size_t size);
+   The command must be a structure starting with an 8-bit shader ID. Returns
+   true on success, false if the maximum amount of commands or command memory
+   is exceeded. */
+bool azrp_queue_command(void *command, size_t size, int fragment);
 
 //---
 // Internal shader definitions (for reference; no API guarantee)

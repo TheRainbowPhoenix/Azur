@@ -10,7 +10,7 @@ if("${FXSDK_PLATFORM_LONG}" STREQUAL fxCG50)
 endif()
 
 # General options
-add_compile_options(-Wall -Wextra -O2
+add_compile_options(-Wall -Wextra -O3
   -fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/=)
 
 set(CMAKE_C_STANDARD 11)
@@ -60,7 +60,7 @@ if(FACETS_PLATFORM STREQUAL emscripten)
 
   set(PORTS -sUSE_SDL=2 -sUSE_SDL_IMAGE=2 -sSDL2_IMAGE_FORMATS=["png"])
   add_compile_options(${PORTS})
-  add_link_options(${PORTS} -O2)
+  add_link_options(${PORTS} -O3)
 endif()
 
 #---

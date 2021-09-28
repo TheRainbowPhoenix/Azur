@@ -35,7 +35,7 @@ void azrp_clear(uint16_t color)
 
     for(int i = 0; i < azrp_frag_count; i++) {
         cmd.fragment_id = i;
-        azrp_queue_command(&cmd, sizeof cmd);
+        azrp_queue_command(&cmd, sizeof cmd, i);
     }
 
     prof_leave(azrp_perf_cmdgen);
