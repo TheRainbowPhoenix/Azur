@@ -10,7 +10,7 @@ if("${FXSDK_PLATFORM_LONG}" STREQUAL fxCG50)
 endif()
 
 # General options
-add_compile_options(-Wall -Wextra -O3
+add_compile_options(-Wall -Wextra -O2
   -fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/=)
 
 set(CMAKE_C_STANDARD 11)

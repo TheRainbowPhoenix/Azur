@@ -536,29 +536,32 @@ _P8_RGB565.palette_distance:
    The main loop achieves 5 cycles/pixel. */
 .align 4
 _P4_RGB565A:
-	shlr	r9
-	mov	#-1, r0
-
-	mov.l	r10, @-r15
-	addc	r0, r9
-
-	mov.l	r11, @-r15
 	shlr	r7
+	mov.w	@(6, r2), r0	/* command.edge2 */
 
 	mov.l	r12, @-r15
+	add	#-15, r2	/* Go back to start of command */
+
+	mov	#-1, r12
+	shlr	r9
+
+	mov.l	r11, @-r15
+	addc	r12, r9
+
+	mov	r0, r12
+	add	r12, r12
+
+	mov.l	r10, @-r15
 	sub	r7, r9
 
-	mov.w	@r2+, r11	/* command.edge1 */
+	mov.b	@r2, r11	/* command.edge1 */
 	add	#2, r8		/* image.palette */
 
-	mov.w	@r2+, r12	/* command.edge2 */
+	mov.l	r13, @-r15
 	mov	r5, r0
 
-	mov.l	r13, @-r15
-	shll	r11
-
 	mov.l	r14, @-r15
-	shll	r12
+	shll	r11
 
 	add	#-4, r5
 	nop	/* 4-alignment */
@@ -618,9 +621,9 @@ _P4_RGB565A:
 	END_NORET()
 	mov.l	@r15+, r14
 	mov.l	@r15+, r13
-	mov.l	@r15+, r12
-	mov.l	@r15+, r11
 	mov.l	@r15+, r10
+	mov.l	@r15+, r11
+	mov.l	@r15+, r12
 	mov.l	@r15+, r9
 	rts
 	mov.l	@r15+, r8
@@ -630,32 +633,35 @@ _P4_RGB565A:
    core loop runs in 3.5 cycles/pixel. */
 .align 4
 _P4_RGB565:
-	shlr	r9
-	mov	#-1, r0
+	shlr	r7
+	mov.w	@(6, r2), r0	/* command.edge2 */
 
 	mov.l	r10, @-r15
-	addc	r0, r9
-
-	mov.l	r11, @-r15
-	shlr	r7
+	add	#-15, r2	/* Go back to start of command */
 
 	mov.l	r12, @-r15
+	shlr	r9
+
+	add	#2, r8		/* image.palette */
+	mov	#-1, r12
+
+	mov.l	r11, @-r15
+	addc	r12, r9
+
+	mov	r0, r12
+	add	r12, r12
+
+	mov.b	@r2, r11	/* command.edge1 */
 	sub	r7, r9
 
-	mov.w	@r2+, r11	/* command.edge1 */
-	add	#2, r8		/* image.palette */
-
-	mov.w	@r2+, r12	/* command.edge2 */
-	mov	r5, r0
-
 	mov.l	r13, @-r15
-	shll	r11
+	mov	#0x1e, r2
 
 	mov.l	r14, @-r15
-	shll	r12
+	shll	r11
 
+	mov	r5, r0
 	add	#-4, r5
-	mov	#0x1e, r2
 
 	START()
 
@@ -706,8 +712,8 @@ _P4_RGB565:
 	END_NORET()
 	mov.l	@r15+, r14
 	mov.l	@r15+, r13
-	mov.l	@r15+, r12
 	mov.l	@r15+, r11
+	mov.l	@r15+, r12
 	mov.l	@r15+, r10
 	mov.l	@r15+, r9
 	rts

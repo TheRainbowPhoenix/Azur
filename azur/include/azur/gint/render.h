@@ -243,19 +243,21 @@ void azrp_set_uniforms(int shader_id, void *uniforms);
 
 /* azrp_queue_command(): Add a new command to be rendered next frame
 
-   The command must be a structure starting with an 8-bit shader ID. Returns
-   true on success, false if the maximum amount of commands or command memory
-   is exceeded. */
-bool azrp_queue_command(void *command, size_t size, int fragment);
+   The command must be a structure starting with an 8-bit shader ID. The
+   command is added for all fragments in range [fragment..fragment+count); its
+   data can be updated between fragments by the shader program. Returns true on
+   success, false if the maximum amount of commands or command memory is
+   exceeded. */
+bool azrp_queue_command(void *command, size_t size, int fragment, int count);
 
 //---
 // Internal shader definitions (for reference; no API guarantee)
 //---
 
 struct azrp_shader_image_command {
-    /* Shader ID and fragment number */
     uint8_t shader_id;
-    uint8_t fragment_id;
+    /* First edge-preserved pixel offset (P4 only) */
+    int8_t edge1;
     /* Pixels per line */
     int16_t columns;
     /* Address of the image structure */
@@ -266,8 +268,14 @@ struct azrp_shader_image_command {
     int16_t lines;
     /* Already offset by start row and column */
     void const *input;
-    /* P4 modes only:  */
-    int16_t edge1, edge2;
+
+    /* Info for structure update between fragments: */
+    int16_t height;
+    int16_t row_stride;
+    int16_t x;
+
+    /* Second edge-preserved pixel offset (P4 only) */
+    int16_t edge2;
 };
 
 AZUR_END_DECLS

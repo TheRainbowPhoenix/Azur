@@ -45,7 +45,6 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
     cmd.image = image;
 
     int row_stride;
-    size_t cmd_size = sizeof cmd - 4;
 
     if(image->profile == P8_RGB565 || image->profile == P8_RGB565A) {
         row_stride = image->width;
@@ -63,7 +62,6 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
         cmd.edge2 = width + odd_left;
         cmd.columns += odd_left + odd_right;
         x -= odd_left;
-        cmd_size += 4;
     }
     else {
         row_stride = image->width << 1;
@@ -71,22 +69,20 @@ void azrp_subimage(int x, int y, bopti_image_t const *image,
     }
 
     /* This divides by azrp_frag_height */
-    cmd.fragment_id = (azrp_scale == 1) ? (y >> 3) : (y >> 4);
+    int fragment_id = (azrp_scale == 1) ? (y >> 3) : (y >> 4);
 
     /* These settings only apply to the first fragment */
     int first_y = (y + azrp_frag_offset) & (azrp_frag_height - 1);
     cmd.lines = azrp_frag_height - first_y;
     cmd.output = 2 * (azrp_width * first_y + x);
 
-    while(height > 0) {
-        azrp_queue_command(&cmd, cmd_size, cmd.fragment_id);
+    /* Settings for further updates */
+    cmd.height = height;
+    cmd.row_stride = row_stride;
+    cmd.x = x;
 
-        height -= cmd.lines;
-        cmd.fragment_id++;
-        cmd.input += row_stride * cmd.lines;
-        cmd.lines = min(height, azrp_frag_height);
-        cmd.output = 2 * x;
-    }
+    int n = 1 + (height - cmd.lines + azrp_frag_height - 1) / azrp_frag_height;
+    azrp_queue_command(&cmd, sizeof cmd, fragment_id, n);
 
     prof_leave(azrp_perf_cmdgen);
 }

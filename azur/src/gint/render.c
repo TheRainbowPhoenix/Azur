@@ -2,6 +2,7 @@
 
 #include <gint/drivers/r61524.h>
 #include <gint/defs/attributes.h>
+#include <gint/defs/util.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -113,6 +114,15 @@ void azrp_render_fragments(void)
             prof_enter_norec(azrp_perf_shaders);
             shaders[data[0]](shader_uniforms[data[0]], data, azrp_frag);
             prof_leave_norec(azrp_perf_shaders);
+
+            if(data[0] == AZRP_SHADER_IMAGE) {
+                struct azrp_shader_image_command *cmd = (void *)data;
+                cmd->height -= cmd->lines;
+                cmd->input += cmd->row_stride * cmd->lines;
+                cmd->lines = min(cmd->height, azrp_frag_height);
+                cmd->output = 2 * cmd->x;
+            }
+
             cmd = commands_array[++i];
         }
 
@@ -209,9 +219,9 @@ void azrp_set_uniforms(int shader_id, void *uniforms)
     shader_uniforms[shader_id] = uniforms;
 }
 
-bool azrp_queue_command(void *command, size_t size, int fragment)
+bool azrp_queue_command(void *command, size_t size, int fragment, int count)
 {
-    if(commands_count >= AZRP_MAX_COMMANDS)
+    if(commands_count + count > AZRP_MAX_COMMANDS)
         return false;
     if(commands_length + size >= 8192)
         return false;
@@ -222,10 +232,13 @@ bool azrp_queue_command(void *command, size_t size, int fragment)
     for(size_t i = 0; i < size; i++)
         dst[i] = src[i];
 
-    commands_array[commands_count++] =
-        (fragment << 16) | commands_length;
-    commands_length += size;
+    do {
+        commands_array[commands_count++] = (fragment << 16) | commands_length;
+        fragment++;
+    }
+    while(--count > 0);
 
+    commands_length += size;
     return true;
 }
 

@@ -18,9 +18,8 @@ void azrp_shader_clear_configure(void)
 //---
 
 struct command {
-   /* Shader ID and fragment number */
    uint8_t shader_id;
-   uint8_t fragment_id;
+   uint8_t _;
    /* Color */
    uint16_t color;
 };
@@ -33,10 +32,6 @@ void azrp_clear(uint16_t color)
     cmd.shader_id = AZRP_SHADER_CLEAR;
     cmd.color = color;
 
-    for(int i = 0; i < azrp_frag_count; i++) {
-        cmd.fragment_id = i;
-        azrp_queue_command(&cmd, sizeof cmd, i);
-    }
-
+    azrp_queue_command(&cmd, sizeof cmd, 0, azrp_frag_count);
     prof_leave(azrp_perf_cmdgen);
 }
