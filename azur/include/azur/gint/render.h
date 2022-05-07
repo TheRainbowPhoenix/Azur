@@ -33,8 +33,8 @@
 #include <azur/defs.h>
 AZUR_BEGIN_DECLS
 
-#include <gint/defs/types.h>
 #include <gint/display.h>
+#include <gint/image.h>
 
 #include <libprof.h>
 
@@ -45,7 +45,7 @@ AZUR_BEGIN_DECLS
 typedef void azrp_shader_t(void *uniforms, void *command, void *fragment);
 
 /* Video memory fragment used as rendering target (in XRAM). */
-extern uint16_t azrp_frag[];
+extern uint16_t *azrp_frag;
 
 /* Maximum number of commands that can be queued. (This is only one of two
    limits, the other being the size of the command data.) */
@@ -128,19 +128,19 @@ extern int azrp_frag_height;
    The settings on each mode are as follow:
 
    * x1: Display resolution: 396x224
-         Fragment size: 8 rows (6336 bytes)
+         Fragment size: 16 rows (12672 bytes)
          Number of fragments: 28 (29 if an offset is used)
-         Total size of graphics data: 177.408 kB
+         Total size of graphics data: 177'408 bytes
 
    * x2: Display resolution: 198x112
-         Fragment size: 16 rows (6336 bytes)
+         Fragment size: 16 rows (6336 bytes) # TODO: increase
          Number of fragments 7 (8 if an offset if used)
-         Total size of graphics data: 44.352 kB
+         Total size of graphics data: 44'352 bytes
 
    * x3: Display resolution: 132x75 (last row only has 2/3 pixels)
-         Fragment size: 16 rows (4224 bytes)
+         Fragment size: 16 rows (4224 bytes) # TODO: increase
          Number of fragments: 5 (sometimes 6 if an offset is used)
-         Total size of graphics data: 19.800 kB
+         Total size of graphics data: 19'800 bytes
 
    As one would know when playing modern video games, super-resolution is one
    of the most useful ways to increase performance. The reduced amount of
@@ -168,29 +168,49 @@ void azrp_config_scale(int scale);
 void azrp_config_frag_offset(int offset);
 
 //---
+// Hooks
+//---
+
+/* Hook called before a fragment is sent to the display. The fragment can be
+   accessed and modified freeely (however, the time spent in the hook is
+   counted as overhead and only part of [azrp_perf_render]). */
+typedef void azrp_hook_prefrag_t(int id, void *fragment, int size);
+
+/* Get or set the prefrag hook. */
+azrp_hook_prefrag_t *azrp_hook_get_prefrag(void);
+void azrp_hook_set_prefrag(azrp_hook_prefrag_t *);
+
+//---
 // Standard shaders
 //---
 
- /* Clears the entire output with a single color */
+/* Clears the entire output with a single color */
 extern uint8_t AZRP_SHADER_CLEAR;
- /* Renders RGB565 textures/images */
-extern uint8_t AZRP_SHADER_IMAGE;
+/* Renders gint images with various dynamic effects */
+extern uint8_t AZRP_SHADER_IMAGE_RGB16;
+extern uint8_t AZRP_SHADER_IMAGE_P8;
+extern uint8_t AZRP_SHADER_IMAGE_P4;
 
 /* azrp_clear(): Clear output [ARZP_SHADER_CLEAR] */
 void azrp_clear(uint16_t color);
 
-/* azrp_image(): Queue image command [AZRP_SHADER_IMAGE] */
+/* azrp_image(): Queue image command [AZRP_SHADER_IMAGE_*] */
 void azrp_image(int x, int y, bopti_image_t const *image);
 
-/* azrp_subimage(): Queue image subsection command [AZRP_SHADER_IMAGE] */
+/* azrp_subimage(): Queue image subsection command [AZRP_SHADER_IMAGE_*] */
 void azrp_subimage(int x, int y, bopti_image_t const *image,
    int left, int top, int width, int height, int flags);
 
+/* See below for more detailed image functions. Dynamic effects are provided
+   with the same naming convention as gint. */
+
 /* Functions to update uniforms for these shaders. You should call them when:
    * AZRP_SHADER_CLEAR: Changing super-scaling settings.
-   * AZRP_SHADER_IMAGE: Changing super-scaling or or fragment offsets. */
+   * AZRP_SHADER_IMAGE_*: Changing super-scaling or or fragment offsets. */
 void azrp_shader_clear_configure(void);
-void azrp_shader_image_configure(void);
+void azrp_shader_image_rgb16_configure(void);
+void azrp_shader_image_p8_configure(void);
+void azrp_shader_image_p4_configure(void);
 
 //---
 // Performance indicators
@@ -250,32 +270,79 @@ void azrp_set_uniforms(int shader_id, void *uniforms);
    exceeded. */
 bool azrp_queue_command(void *command, size_t size, int fragment, int count);
 
+/* azrp_queue_image(): Split and queue a gint image command
+
+    The command must have been completely prepared with gint_image_mkcmd() and
+    have had its color effect sections filled. This function sets the shader ID
+    and adjusts the command for fragmented rendering. */
+void azrp_queue_image(struct gint_image_box *box, image_t const *img,
+    struct gint_image_cmd *cmd);
+
 //---
-// Internal shader definitions (for reference; no API guarantee)
+// Internal R61524 functions
 //---
 
-struct azrp_shader_image_command {
-    uint8_t shader_id;
-    /* First edge-preserved pixel offset (P4 only) */
-    int8_t edge1;
-    /* Pixels per line */
-    int16_t columns;
-    /* Address of the image structure */
-    bopti_image_t const *image;
-    /* Destination in XRAM (offset) */
-    uint16_t output;
-    /* Number of lines */
-    int16_t lines;
-    /* Already offset by start row and column */
-    void const *input;
+void azrp_r61524_fragment_x1(void *fragment, int size);
 
-    /* Info for structure update between fragments: */
-    int16_t height;
-    int16_t row_stride;
-    int16_t x;
+void azrp_r61524_fragment_x2(void *fragment, int width, int height);
 
-    /* Second edge-preserved pixel offset (P4 only) */
-    int16_t edge2;
-};
+//---
+// Internal functions for the image shader
+//
+// We use gint's image rendering API but replace some of the core loops with
+// Azur-specific versions that are faster in the CPU-bound context of this
+// rendering engine. Some of the main loops from Azur actually perform better
+// in RAM than bopti used to do, and are already in gint.
+//---
+
+/* azrp_image_effect(): Generalized azrp_image() with dynamic effects */
+#define azrp_image_effect(x, y, img, eff, ...) \
+    azrp_image_effect(x, y, img, 0, 0, (img)->width, (img)->height, eff, \
+        ##__VA_ARGS__)
+/* azrp_subimage_effect(): Generalized azrp_subimage() with dynamic effects */
+void azrp_subimage_effect(int x, int y, image_t const *img,
+    int left, int top, int w, int h, int effects, ...);
+
+/* Specific versions for each format */
+#define AZRP_IMAGE_SIG1(NAME, ...) \
+    void azrp_image_ ## NAME(int x, int y, image_t const *img,##__VA_ARGS__); \
+    void azrp_subimage_ ## NAME(int x, int y, image_t const *img, \
+        int left, int top, int w, int h, ##__VA_ARGS__);
+#define AZRP_IMAGE_SIG(NAME, ...) \
+    AZRP_IMAGE_SIG1(rgb16 ## NAME, ##__VA_ARGS__) \
+    AZRP_IMAGE_SIG1(p8 ## NAME, ##__VA_ARGS__) \
+    AZRP_IMAGE_SIG1(p4 ## NAME, ##__VA_ARGS__)
+
+AZRP_IMAGE_SIG(_effect, int effects, ...)
+AZRP_IMAGE_SIG(, int effects)
+AZRP_IMAGE_SIG(_clearbg, int effects, int bg_color_or_index)
+AZRP_IMAGE_SIG(_swapcolor, int effects, int source, int replacement)
+AZRP_IMAGE_SIG(_addbg, int effects, int bg_color)
+AZRP_IMAGE_SIG(_dye, int effects, int dye_color)
+
+#define azrp_image_rgb16_effect(x, y, img, eff, ...) \
+    azrp_subimage_rgb16_effect(x, y, img, 0, 0, (img)->width, (img)->height, \
+        eff, ##__VA_ARGS__)
+#define azrp_image_p8_effect(x, y, img, eff, ...) \
+    azrp_subimage_p8_effect(x, y, img, 0, 0, (img)->width, (img)->height, \
+        eff, ##__VA_ARGS__)
+#define azrp_image_p4_effect(x, y, img, eff, ...) \
+    azrp_subimage_p4_effect(x, y, img, 0, 0, (img)->width, (img)->height, \
+        eff, ##__VA_ARGS__)
+
+#undef AZRP_IMAGE_SIG
+#undef AZRP_IMAGE_SIG1
+
+/* Main loop provided by Azur; as usual, these are not real functions; their
+   only use is as the [.loop] field of a command. */
+
+void azrp_image_shader_rgb16_normal(void);
+void azrp_image_shader_rgb16_clearbg(void);
+void azrp_image_shader_rgb16_swapcolor(void);
+void azrp_image_shader_rgb16_dye(void);
+void azrp_image_shader_p8_normal(void);
+void azrp_image_shader_p8_swapcolor(void);
+void azrp_image_shader_p4_normal(void);
+void azrp_image_shader_p4_clearbg(void);
 
 AZUR_END_DECLS

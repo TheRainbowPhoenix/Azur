@@ -1,5 +1,5 @@
 //---
-// azur.defs: Generation definitions
+// azur.defs: General definitions that are included in every file
 //---
 
 /* This exposes compile-time configuration symbols. I don't like running the

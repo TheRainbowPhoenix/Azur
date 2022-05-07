@@ -7,11 +7,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define YRAM ((void *)0xe5017000)
-
-/* 8 rows of video memory, occupying 6338/8192 bytes of XRAM.
-   TODO: Extend this to 16 rows, and move the rest to RAM */
-GXRAM GALIGNED(32) uint16_t azrp_frag[DWIDTH * 8];
+/* 16 rows of video memory, occupying 12736/16384 bytes or XYRAM (77.7%). */
+uint16_t *azrp_frag = (void *)0xe500e000 + 32;
 
 /* Super-scaling factor, width and height of output. */
 int azrp_scale;
@@ -22,27 +19,33 @@ int azrp_frag_count;
 /* Height of fragment. */
 int azrp_frag_height;
 
-/* TODO: Either make command queue private or use azrp_ prefix */
-
 /* Number and total size of queued commands. */
-GXRAM int commands_count = 0, commands_length = 0;
+static int commands_count=0, commands_length=0;
 
-/* Array of pointers to queued commands (stored as an offset into YRAM). */
-GXRAM uint32_t commands_array[AZRP_MAX_COMMANDS];
+/* Array of pointers to queued commands. Each command has:
+   * Top 16 bits: fragment number
+   * Bottom 16 bits: offset into command data buffer
+   Rendering order is integer order. */
+static uint32_t commands_array[AZRP_MAX_COMMANDS];
+
+static GALIGNED(4) uint8_t commands_data[8192];
 
 /* Array of shader programs and uniforms. */
-GXRAM static azrp_shader_t *shaders[AZRP_MAX_SHADERS] = { NULL };
-GXRAM static void *shader_uniforms[AZRP_MAX_SHADERS] = { NULL };
+static azrp_shader_t *shaders[AZRP_MAX_SHADERS] = { NULL };
+static void *shader_uniforms[AZRP_MAX_SHADERS] = { NULL };
 
 /* Next free index in the shader program array. */
-GXRAM static uint16_t shaders_next = 0;
+static uint16_t shaders_next = 0;
+
+/* Hooks. */
+static azrp_hook_prefrag_t *azrp_hook_prefrag = NULL;
 
 /* Performance counters. */
-GXRAM prof_t azrp_perf_cmdgen;
-GXRAM prof_t azrp_perf_sort;
-GXRAM prof_t azrp_perf_shaders;
-GXRAM prof_t azrp_perf_r61524;
-GXRAM prof_t azrp_perf_render;
+prof_t azrp_perf_cmdgen;
+prof_t azrp_perf_sort;
+prof_t azrp_perf_shaders;
+prof_t azrp_perf_r61524;
+prof_t azrp_perf_render;
 
 //---
 // High and low-level pipeline functions
@@ -110,25 +113,23 @@ void azrp_render_fragments(void)
     while(1) {
         while(cmd < next_frag_threshold && i < commands_count) {
             azrp_commands_total++;
-            uint8_t *data = (uint8_t *)YRAM + (cmd & 0xffff);
+            uint8_t *data = commands_data + (cmd & 0xffff);
             prof_enter_norec(azrp_perf_shaders);
             shaders[data[0]](shader_uniforms[data[0]], data, azrp_frag);
             prof_leave_norec(azrp_perf_shaders);
-
-            if(data[0] == AZRP_SHADER_IMAGE) {
-                struct azrp_shader_image_command *cmd = (void *)data;
-                cmd->height -= cmd->lines;
-                cmd->input += cmd->row_stride * cmd->lines;
-                cmd->lines = min(cmd->height, azrp_frag_height);
-                cmd->output = 2 * cmd->x;
-            }
-
             cmd = commands_array[++i];
         }
 
-        /* TODO: Consider xram_frame() by DMA in parallel? */
+        if(azrp_hook_prefrag) {
+            int size = azrp_width * azrp_frag_height * 2;
+            (*azrp_hook_prefrag)(frag, azrp_frag, size);
+        }
+
         prof_enter_norec(azrp_perf_r61524);
-        xram_frame(azrp_frag, 396 * 8);
+        if(azrp_scale == 1)
+            azrp_r61524_fragment_x1(azrp_frag, 396 * azrp_frag_height);
+        else if(azrp_scale == 2)
+            azrp_r61524_fragment_x2(azrp_frag, azrp_width, azrp_frag_height);
         prof_leave_norec(azrp_perf_r61524);
 
         if(++frag >= azrp_frag_count) break;
@@ -149,10 +150,12 @@ void azrp_update(void)
 // Configuration calls
 //---
 
+// TODO: Use larger fragments in upscales x2 and x3
+
 static void update_frag_count(void)
 {
     if(azrp_scale == 1)
-        azrp_frag_count = 28 + (azrp_frag_offset > 0);
+        azrp_frag_count = 14 + (azrp_frag_offset > 0);
     else if(azrp_scale == 2)
         azrp_frag_count = 7 + (azrp_frag_offset > 0);
     else if(azrp_scale == 3)
@@ -162,7 +165,7 @@ static void update_frag_count(void)
 static void update_size(void)
 {
     if(azrp_scale == 1)
-        azrp_width = 396, azrp_height = 198, azrp_frag_height = 8;
+        azrp_width = 396, azrp_height = 224, azrp_frag_height = 16;
     else if(azrp_scale == 2)
         azrp_width = 198, azrp_height = 112, azrp_frag_height = 16;
     else if(azrp_scale == 3)
@@ -192,6 +195,20 @@ __attribute__((constructor))
 static void default_settings(void)
 {
     azrp_config_scale(1);
+}
+
+//---
+// Hooks
+//---
+
+azrp_hook_prefrag_t *azrp_hook_get_prefrag(void)
+{
+    return azrp_hook_prefrag;
+}
+
+void azrp_hook_set_prefrag(azrp_hook_prefrag_t *hook)
+{
+    azrp_hook_prefrag = hook;
 }
 
 //---
@@ -226,7 +243,7 @@ bool azrp_queue_command(void *command, size_t size, int fragment, int count)
     if(commands_length + size >= 8192)
         return false;
 
-    uint8_t *dst = YRAM + commands_length;
+    uint8_t *dst = commands_data + commands_length;
     uint8_t *src = command;
 
     for(size_t i = 0; i < size; i++)

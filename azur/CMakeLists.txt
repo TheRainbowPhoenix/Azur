@@ -28,10 +28,32 @@ endif()
 if(AZUR_GRAPHICS_GINT_CG)
   list(APPEND SOURCES
     src/gint/render.c
+    src/gint/r61524.s
+    # Clear shader
     src/gint/shaders/clear.c
     src/gint/shaders/clear.S
+    # Image shader
     src/gint/shaders/image.c
-    src/gint/shaders/image.S)
+    src/gint/shaders/image_rgb16_normal.S
+    src/gint/shaders/image_rgb16_clearbg.S
+    src/gint/shaders/image_rgb16_swapcolor.S
+    src/gint/shaders/image_rgb16_dye.S
+    src/gint/shaders/image_p8_normal.S
+    src/gint/shaders/image_p8_swapcolor.S
+    src/gint/shaders/image_p4_normal.S
+    # Image shader interface
+    src/gint/shaders/image_rgb16.c
+    src/gint/shaders/image_rgb16_effect.c
+    src/gint/shaders/image_rgb16_swapcolor.c
+    src/gint/shaders/image_rgb16_dye.c
+    src/gint/shaders/image_p8.c
+    src/gint/shaders/image_p8_effect.c
+    src/gint/shaders/image_p8_swapcolor.c
+    src/gint/shaders/image_p8_dye.c
+    src/gint/shaders/image_p4.c
+    src/gint/shaders/image_p4_effect.c
+    src/gint/shaders/image_p4_swapcolor.c
+    src/gint/shaders/image_p4_dye.c)
 endif()
 
 add_library(azur STATIC ${SOURCES})
