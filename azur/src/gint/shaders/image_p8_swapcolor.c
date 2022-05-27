@@ -42,7 +42,7 @@ void azrp_subimage_p8_addbg(int x, int y, image_t const *img,
     if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, azrp_width,
             azrp_height)) {
         cmd.effect += 8;
-        cmd.color_1 = img->alpha;
+        cmd.color_1 = image_alpha(img->format);
         cmd.color_2 = bg_color;
         cmd.loop = azrp_image_shader_p8_swapcolor;
         azrp_queue_image(&box, img, &cmd);

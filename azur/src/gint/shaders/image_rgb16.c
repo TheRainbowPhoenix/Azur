@@ -31,9 +31,9 @@ void azrp_image_rgb16(int x, int y, image_t const *img, int eff)
 void azrp_subimage_rgb16(int x, int y, image_t const *img,
     int left, int top, int w, int h, int eff)
 {
-    if(img->profile == IMAGE_RGB565A)
+    if(img->format == IMAGE_RGB565A)
         return azrp_subimage_rgb16_clearbg(x, y, img, left, top, w, h, eff,
-            img->alpha);
+            image_alpha(img->format));
 
     prof_enter(azrp_perf_cmdgen);
     struct gint_image_box box = { x, y, w, h, left, top };

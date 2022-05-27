@@ -5,10 +5,10 @@ void azrp_queue_image(struct gint_image_box *box, image_t const *img,
     struct gint_image_cmd *cmd)
 {
     /* TODO: Ironically, this loads all 3 entry points */
-    int p = img->profile;
-    if(p == IMAGE_RGB565 || p == IMAGE_RGB565A)
+    int f = img->format;
+    if(IMAGE_IS_RGB16(f))
         cmd->shader_id = AZRP_SHADER_IMAGE_RGB16;
-    else if(p == IMAGE_P8_RGB565 || p == IMAGE_P8_RGB565A)
+    else if(IMAGE_IS_P8(f))
         cmd->shader_id = AZRP_SHADER_IMAGE_P8;
     else
         cmd->shader_id = AZRP_SHADER_IMAGE_P4;
@@ -29,13 +29,13 @@ void azrp_queue_image(struct gint_image_box *box, image_t const *img,
 void azrp_subimage(int x, int y, image_t const *img,
     int left, int top, int width, int height, int flags)
 {
-    int p = img->profile;
+    int f = img->format;
 
-    if(p == IMAGE_RGB565 || p == IMAGE_RGB565A)
+    if(IMAGE_IS_RGB16(f))
         return azrp_subimage_rgb16(x, y, img, left, top, width, height, flags);
-    if(p == IMAGE_P8_RGB565 || p == IMAGE_P8_RGB565A)
+    if(IMAGE_IS_P8(f))
         return azrp_subimage_p8(x, y, img, left, top, width, height, flags);
-    if(p == IMAGE_P4_RGB565 || p == IMAGE_P4_RGB565A)
+    if(IMAGE_IS_P4(f))
         return azrp_subimage_p4(x, y, img, left, top, width, height, flags);
 }
 

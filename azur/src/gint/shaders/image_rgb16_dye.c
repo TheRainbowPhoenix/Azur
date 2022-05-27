@@ -17,7 +17,7 @@ void azrp_subimage_rgb16_dye(int x, int y, image_t const *img,
     if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, azrp_width,
             azrp_height)) {
         cmd.effect += 12;
-        cmd.color_1 = img->alpha;
+        cmd.color_1 = image_alpha(img->format);
         cmd.color_2 = dye_color;
         cmd.loop = azrp_image_shader_rgb16_dye;
         azrp_queue_image(&box, img, &cmd);
