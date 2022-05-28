@@ -42,8 +42,8 @@ if(freetype2_FOUND)
 elseif(AZUR_PLATFORM_EMSCRIPTEN)
   target_compile_definitions(imgui PUBLIC -DIMGUI_ENABLE_FREETYPE)
   target_include_directories(imgui PRIVATE ../imgui/misc/freetype)
-  target_compile_options(imgui PUBLIC -sUSE_FREETYPE=2)
-  target_link_options(imgui INTERFACE -sUSE_FREETYPE=2)
+  target_compile_options(imgui PUBLIC -sUSE_FREETYPE=1)
+  target_link_options(imgui INTERFACE -sUSE_FREETYPE=1)
 endif()
 
 # Provide include directories
