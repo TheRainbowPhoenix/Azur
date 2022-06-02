@@ -7,11 +7,6 @@ set(SOURCES
   src/log.c)
 set(ASSETS)
 
-# All flavours of OpenGL
-if(AZUR_GRAPHICS_OPENGL_3_3 OR AZUR_GRAPHICS_OPENGL_ES_2_0)
-  set(AZUR_GRAPHICS_OPENGL TRUE)
-endif()
-
 # SDL/OpenGL rendering
 if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
   list(APPEND SOURCES
@@ -61,7 +56,8 @@ add_library(azur STATIC ${SOURCES})
 # File preloading on emscripten
 if(AZUR_PLATFORM_EMSCRIPTEN)
   set_target_properties(azur PROPERTIES
-    INTERFACE_LINK_OPTIONS "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/glsl@/azur/glsl"
+    INTERFACE_LINK_OPTIONS
+      "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/glsl@/azur/glsl"
     LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/glsl")
 
   # Add assets to link dependencies
@@ -81,3 +77,17 @@ target_include_directories(azur
   PUBLIC "${PROJECT_SOURCE_DIR}/include"
   PUBLIC "${PROJECT_BINARY_DIR}/include"
 )
+
+#---
+# Install
+#---
+
+# Library file: libazur.a
+install(TARGETS azur DESTINATION ${LIBDIR})
+# Headers: azur/*.h
+install(DIRECTORY include/ DESTINATION ${INCDIR} FILES_MATCHING PATTERN "*.h")
+# Generated header: azur/config.h
+install(FILES "${PROJECT_BINARY_DIR}/include/azur/config.h"
+  DESTINATION ${INCDIR}/azur)
+# CMake module loading the library: TODO
+# install(FILES cmake/FindAzur.cmake DESTINATION "${FXSDK_CMAKE_MODULE_PATH}")

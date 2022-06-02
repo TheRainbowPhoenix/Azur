@@ -1,27 +1,43 @@
 cmake_minimum_required(VERSION 3.19)
-project(Facets VERSION 0.1)
+project(AzurEngine VERSION 0.1)
 
-# TODO: Set AZUR_DEBUG based on CMake Debug/Release setting
-set(AZUR_DEBUG ON)
+#---
+# Configuration
+#
+# -DCMAKE_BUILD_TYPE
+#    Debug       Debug build with -O0 -g
+#    Release     Release build with -Os [default]
+#
+#  -DAZUR_PLATFORM
+#    gint        Build for gint for fx-CG
+#    linux       Build for Linux with SDL and OpenGL 3.3
+#    emscripten  Build for Emscripten with SDL and OpenGL ES 2.0
+#
+#  -DCMAKE_INSTALL_PREFIX
+#---
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "")
+  set("${CMAKE_BUILD_TYPE}" Release)
+endif()
+
+# Debug build
+if("${CMAKE_BUILD_TYPE}" STREQUAL Debug)
+  set(AZUR_DEBUG TRUE)
+else()
+  set(AZUR_DEBUG FALSE)
+endif()
 
 # When using [fxsdk build-cg], assume gint
 if("${FXSDK_PLATFORM_LONG}" STREQUAL fxCG50)
-  set(FACETS_PLATFORM gint)
+  set(AZUR_PLATFORM gint)
 endif()
 
-# General options
-add_compile_options(-Wall -Wextra -O2
-  -fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/=)
+# Default install paths
+set(LIBDIR "lib")
+set(INCDIR "include")
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# gint
-
-if(FACETS_PLATFORM STREQUAL gint)
+# Target configuration: gint
+if("${AZUR_PLATFORM}" STREQUAL "gint")
   set(AZUR_PLATFORM_GENERIC TRUE)
   set(AZUR_TOOLKIT_GINT TRUE)
   set(AZUR_GRAPHICS_GINT_CG TRUE)
@@ -31,11 +47,21 @@ if(FACETS_PLATFORM STREQUAL gint)
   find_package(LibProf 2.4 REQUIRED)
 
   link_libraries(LibProf::LibProf Gint::Gint)
+
+  # Default to the fxSDK install path
+  if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${FXSDK_COMPILER_INSTALL}" CACHE PATH "..." FORCE)
+  endif()
+
+  # The fxSDK install path has a slightly different structure
+  if(CMAKE_INSTALL_PREFIX STREQUAL "${FXSDK_COMPILER_INSTALL}")
+    set(LIBDIR ".")
+    set(INCDIR "include")
+  endif()
 endif()
 
-# linux
-
-if(FACETS_PLATFORM STREQUAL linux)
+# Target configuration: linux
+if(AZUR_PLATFORM STREQUAL linux)
   set(AZUR_PLATFORM_GENERIC TRUE)
   set(AZUR_TOOLKIT_SDL TRUE)
   set(AZUR_GRAPHICS_OPENGL_3_3 TRUE)
@@ -50,9 +76,8 @@ if(FACETS_PLATFORM STREQUAL linux)
   link_libraries(PkgConfig::sdl2_image PkgConfig::sdl2 PkgConfig::opengl -lm)
 endif()
 
-# emscripten
-
-if(FACETS_PLATFORM STREQUAL emscripten)
+# Platform configuration: emscripten
+if(AZUR_PLATFORM STREQUAL emscripten)
   set(AZUR_PLATFORM_EMSCRIPTEN TRUE)
   set(AZUR_TOOLKIT_SDL TRUE)
   set(AZUR_GRAPHICS_OPENGL_ES_2_0 TRUE)
@@ -63,9 +88,31 @@ if(FACETS_PLATFORM STREQUAL emscripten)
   add_link_options(${PORTS} -O3)
 endif()
 
+if(AZUR_GRAPHICS_OPENGL_3_3 OR AZUR_GRAPHICS_OPENGL_ES_2_0)
+  set(AZUR_GRAPHICS_OPENGL TRUE)
+endif()
+
+#---
+# Compile options
 #---
 
-if(NOT FACETS_PLATFORM STREQUAL gint)
+add_compile_options(
+  -Wall -Wextra
+  $<IF:$<CONFIG:DEBUG>,-O0,-Os>
+  $<$<CONFIG:DEBUG>:-g>
+  -fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/=)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED TRUE)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
+#---
+# Subdirectory selection
+#---
+
+if(NOT AZUR_PLATFORM STREQUAL gint)
   # This provides GL3W on desktop
   add_subdirectory(gl3w-builds)
   # This provides Dear ImGui
@@ -74,4 +121,5 @@ if(NOT FACETS_PLATFORM STREQUAL gint)
   add_subdirectory(glm-builds)
 endif()
 
+add_subdirectory(libnum)
 add_subdirectory(azur)
