@@ -112,13 +112,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # Subdirectory selection
 #---
 
+# Exclud third-party software from the build on gint; it wouldn't work
 if(NOT AZUR_PLATFORM STREQUAL gint)
-  # This provides GL3W on desktop
-  add_subdirectory(gl3w-builds)
-  # This provides Dear ImGui
-  add_subdirectory(imgui-builds)
-  # This provide GLM
-  add_subdirectory(glm-builds)
+  add_subdirectory(3rdparty)
 endif()
 
 add_subdirectory(libnum)

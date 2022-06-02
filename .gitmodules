@@ -1,9 +1,9 @@
 [submodule "imgui"]
-	path = imgui
+	path = 3rdparty/imgui
 	url = https://github.com/ocornut/imgui
 [submodule "glm"]
-	path = glm
+	path = 3rdparty/glm
 	url = https://github.com/g-truc/glm
 [submodule "gl3w"]
-	path = gl3w
+	path = 3rdparty/gl3w
 	url = https://github.com/skaslev/gl3w
