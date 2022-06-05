@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 3.15)
-project(Azur VERSION 0.1 LANGUAGES CXX C ASM)
+#-----------------------------------------------------------------------------#
+#  ,"  /\  ",    Azur: A game engine for CASIO fx-CG and PC                   #
+# |  _/__\_  |   Designed by Lephe' and the Planète Casio community.          #
+#  "._`\/'_."    License: MIT <https://opensource.org/licenses/MIT>           #
+#-----------------------------------------------------------------------------#
+# Main library build system
 
 configure_file(include/azur/config.h.in include/azur/config.h)
 
@@ -11,12 +15,24 @@ set(ASSETS)
 if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
   list(APPEND SOURCES
     src/sdl_opengl/init.c
-    src/sdl_opengl/util.c)
+    src/sdl_opengl/util.c
+    "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c")
+
   list(APPEND ASSETS
     glsl/vs_prelude_gles2.glsl
     glsl/fs_prelude_gles2.glsl
+    glsl/vs_prelude_gl3.glsl
+    glsl/fs_prelude_gl3.glsl
     glsl/vs_tex2d.glsl
     glsl/fs_tex2d.glsl)
+
+  add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c"
+    COMMAND mkdir -p "${CMAKE_CURRENT_BINARY_DIR}/src"
+    COMMAND python gen_glsl.py "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c"
+            ${ASSETS}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMENT "Generating a C file with prebuilt shaders"
+    DEPENDS gen_glsl.py ${ASSETS})
 endif()
 
 # gint rendering
@@ -53,41 +69,25 @@ endif()
 
 add_library(azur STATIC ${SOURCES})
 
-# File preloading on emscripten
-if(AZUR_PLATFORM_EMSCRIPTEN)
-  set_target_properties(azur PROPERTIES
-    INTERFACE_LINK_OPTIONS
-      "SHELL:--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/glsl@/azur/glsl"
-    LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/glsl")
+set_target_properties(azur PROPERTIES OUTPUT_NAME "azur_${AZUR_PLATFORM}")
 
-  # Add assets to link dependencies
-  set(ASSETS_ABSOLUTE)
-  foreach(ASSET IN LISTS ASSETS)
-    list(APPEND ASSETS_ABSOLUTE "${CMAKE_CURRENT_SOURCE_DIR}/${ASSET}")
-  endforeach()
-  set_target_properties(azur PROPERTIES LINK_DEPENDS "${ASSETS_ABSOLUTE}")
-endif()
-
-# Use ImGui's integrated GL3W loader (which we build separately)
+# Link with GL3W to load the OpenGL 3.3 core profile
 if(AZUR_GRAPHICS_OPENGL_3_3)
   target_link_libraries(azur PUBLIC gl3w)
 endif()
 
-target_include_directories(azur
-  PUBLIC "${PROJECT_SOURCE_DIR}/include"
-  PUBLIC "${PROJECT_BINARY_DIR}/include"
-)
+target_include_directories(azur PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 #---
 # Install
 #---
 
-# Library file: libazur.a
+# Library file: libazur_*.a
 install(TARGETS azur DESTINATION ${LIBDIR})
 # Headers: azur/*.h
 install(DIRECTORY include/ DESTINATION ${INCDIR} FILES_MATCHING PATTERN "*.h")
 # Generated header: azur/config.h
-install(FILES "${PROJECT_BINARY_DIR}/include/azur/config.h"
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/azur/config.h"
   DESTINATION ${INCDIR}/azur)
-# CMake module loading the library: TODO
-# install(FILES cmake/FindAzur.cmake DESTINATION "${FXSDK_CMAKE_MODULE_PATH}")

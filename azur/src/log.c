@@ -4,7 +4,7 @@
 #ifdef AZUR_DEBUG
 static int _level = AZLOG_DEBUG;
 #else
-static int _level = AZLOG_ERROR;
+static int _level = AZLOG_INFO;
 #endif
 
 #ifdef AZUR_TERMINAL_ANSI
@@ -39,6 +39,8 @@ void azlog_write(int level, char const *file, int line, char const *func,
         fprintf(stderr, CYAN "%s:%d: " STOP YELLOW "%s: " STOP,
             file, line, func);
         #else
+        (void)file;
+        (void)line;
         fprintf(stderr, "%s: ", func);
         #endif
 

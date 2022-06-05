@@ -10,6 +10,35 @@ static SDL_GLContext glcontext = NULL;
 
 static void main_loop_quit(void);
 
+#ifdef AZUR_PLATFORM_EMSCRIPTEN
+#include <emscripten/html5.h>
+
+static EM_BOOL fullscreen_callback(int ev, void const *_, void *window0)
+{
+    double w, h;
+    emscripten_get_element_css_size("canvas", &w, &h);
+
+    SDL_Window *window = window0;
+    SDL_SetWindowSize(window, (int)w, (int)h);
+
+    azlog(INFO, "Canvas size updated: now %dx%d", (int)w, (int)h);
+    return EM_TRUE;
+}
+
+static void enter_fullscreen(SDL_Window *window)
+{
+    EmscriptenFullscreenStrategy strategy = {
+        .scaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF,
+        .filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT,
+        .canvasResizedCallback = fullscreen_callback,
+        .canvasResizedCallbackUserData = window,
+    };
+    emscripten_enter_soft_fullscreen("canvas", &strategy);
+    azlog(INFO, "Entered fullscreen! (info)");
+    azlog(ERROR, "Entered fullscreen! (error)");
+}
+#endif /* AZUR_PLATFORM_EMSCRIPTEN */
+
 int azur_init(char const *title, int window_width, int window_height)
 {
     int rc = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
@@ -71,6 +100,10 @@ int azur_init(char const *title, int window_width, int window_height)
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+#ifdef AZUR_PLATFORM_EMSCRIPTEN
+    enter_fullscreen(window);
+#endif
 
     return 0;
 }

@@ -58,23 +58,27 @@ static GLuint azgl_compile_shader(GLenum type, char const *code, ssize_t size,
     char const *origin)
 {
     /* Shader prelude; this gives shader version, some macro definitions and
-       some "selctors" which altogether give some degree of compatibility
+       some "selectors" which altogether provide some degree of compatibility
        between GLSL and GLSL ES. */
     static char const *vs_prelude = NULL;
     static char const *fs_prelude = NULL;
 
     if(!vs_prelude) {
         #if defined AZUR_GRAPHICS_OPENGL_ES_2_0
-        vs_prelude = load_file("azur/glsl/vs_prelude_gles2.glsl", NULL);
+        extern char const *azur_glsl__vs_prelude_gles2;
+        vs_prelude = azur_glsl__vs_prelude_gles2;
         #elif defined AZUR_GRAPHICS_OPENGL_3_3
-        vs_prelude = load_file("azur/glsl/vs_prelude_gl3.glsl", NULL);
+        extern char const *azur_glsl__vs_prelude_gl3;
+        vs_prelude = azur_glsl__vs_prelude_gl3;
         #endif
     }
     if(!fs_prelude) {
         #if defined AZUR_GRAPHICS_OPENGL_ES_2_0
-        fs_prelude = load_file("azur/glsl/fs_prelude_gles2.glsl", NULL);
+        extern char const *azur_glsl__fs_prelude_gles2;
+        fs_prelude = azur_glsl__fs_prelude_gles2;
         #elif defined AZUR_GRAPHICS_OPENGL_3_3
-        fs_prelude = load_file("azur/glsl/fs_prelude_gl3.glsl", NULL);
+        extern char const *azur_glsl__fs_prelude_gl3;
+        fs_prelude = azur_glsl__fs_prelude_gl3;
         #endif
     }
 
@@ -83,7 +87,7 @@ static GLuint azgl_compile_shader(GLenum type, char const *code, ssize_t size,
         prelude = vs_prelude;
     else if(type == GL_FRAGMENT_SHADER)
         prelude = fs_prelude;
-    else
+    if(prelude == NULL)
         prelude = "";
 
     GLuint id = glCreateShader(type);
@@ -95,8 +99,11 @@ static GLuint azgl_compile_shader(GLenum type, char const *code, ssize_t size,
     GLint rc = GL_FALSE;
     GLsizei log_length = 0;
 
+    if(size < 0)
+        size = (int)strlen(code);
+
     char const *string_array[] = { prelude, code };
-    GLint size_array[] = { strlen(prelude), size ? size : (int)strlen(code) };
+    GLint size_array[] = { strlen(prelude), size };
 
     azlog(INFO, "Compiling shader: %s\n", origin);
     glShaderSource(id, 2, string_array, size_array);
@@ -135,7 +142,7 @@ GLuint azgl_compile_shader_file(GLenum type, char const *path)
     return id;
 }
 
-GLuint azgl_compiler_shader_source(GLenum type, char const *code, ssize_t size)
+GLuint azgl_compile_shader_source(GLenum type, char const *code, ssize_t size)
 {
     return azgl_compile_shader(type, code, size, "<inline>");
 }
@@ -199,26 +206,43 @@ GLuint azgl_link_program(GLuint shader_1, ... /* 0-terminated */)
     return azgl_link(shaders, count);
 }
 
-GLuint azgl_load_program(GLenum type, char const *path, ...)
+static GLuint azgl_load_program(bool is_file, GLenum type, char const *input,
+    va_list *args)
 {
-    va_list args;
-    va_start(args, path);
-
     GLuint shaders[32];
     int count = 0;
 
     do {
-        shaders[count++] = azgl_compile_shader_file(type, path);
-        type = va_arg(args, GLenum);
-        path = va_arg(args, char const *);
+        shaders[count++] = is_file
+            ? azgl_compile_shader_file(type, input)
+            : azgl_compile_shader_source(type, input, -1);
+        type = va_arg(*args, GLenum);
+        input = va_arg(*args, char const *);
     }
     while(count < 32 && type != 0);
-    va_end(args);
 
     GLuint prog = azgl_link(shaders, count);
 
     for(int i = 0; i < count; i++)
         glDeleteShader(shaders[i]);
 
+    return prog;
+}
+
+GLuint azgl_load_program_file(GLenum type, char const *path, ...)
+{
+    va_list args;
+    va_start(args, path);
+    GLuint prog = azgl_load_program(true, type, path, &args);
+    va_end(args);
+    return prog;
+}
+
+GLuint azgl_load_program_source(GLenum type, char const *code, ...)
+{
+    va_list args;
+    va_start(args, code);
+    GLuint prog = azgl_load_program(false, type, code, &args);
+    va_end(args);
     return prog;
 }

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#define AZUR_VERSION "@Azur_VERSION@"
 #define AZUR_VERSION_MAJOR @Azur_VERSION_MAJOR@
 #define AZUR_VERSION_MINOR @Azur_VERSION_MINOR@
 

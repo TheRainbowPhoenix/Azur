@@ -1,16 +1,14 @@
-cmake_minimum_required(VERSION 3.15)
-project(libnum VERSION 0.1)
+#-----------------------------------------------------------------------------#
+#  ,"  /\  ",    Azur: A game engine for CASIO fx-CG and PC                   #
+# |  _/__\_  |   Designed by Lephe' and the Planète Casio community.          #
+#  "._`\/'_."    License: MIT <https://opensource.org/licenses/MIT>           #
+#-----------------------------------------------------------------------------#
+# libnum build system
 
-# Most of the code is in the headers
-add_library(num STATIC src/static_checks.cpp test.cpp)
+add_library(num STATIC
+  src/static_checks.cpp)
 
-target_include_directories(num
-  PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_compile_options(num PRIVATE -std=c++17)
-
-#---
-# Install
-#---
+target_include_directories(num PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # Library file: libnum.a
 install(TARGETS num DESTINATION ${LIBDIR})

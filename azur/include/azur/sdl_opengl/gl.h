@@ -7,7 +7,7 @@
 AZUR_BEGIN_DECLS
 
 #ifdef AZUR_GRAPHICS_OPENGL_3_3
-# include "GL/gl3w.h"
+# include <GL/gl3w.h>
 # include <SDL2/SDL_opengl.h>
 #endif /* OpenGL 3.3 */
 
@@ -44,15 +44,22 @@ GLuint azgl_compile_shader_source(GLenum type, char const *code, ssize_t size);
    it, and returns the program ID (0 if link fails). */
 GLuint azgl_link_program(GLuint shader_1, ... /* 0-terminated */);
 
-/* azgl_load_program(): Load a program from shader source files.
+/* azgl_load_program_file(): Load a program from shader source files.
 
    This function runs both azgl_compile_shader_file() and azgl_link_program()
    for all specified files. Each argument should be a pair with a shader type
    and a file name, with a final 0.
 
    Returns the program ID, or 0 if any loading/compilation/link step fails. */
-GLuint azgl_load_program(
+GLuint azgl_load_program_file(
    GLenum type_1, char const *path_1,
    ... /* Pairs repeat until 0-terminated */);
+
+/* azgl_load_program_source(): Load a program from shader source strings.
+
+   Like azgl_load_program_file(), but takes code directly as input. */
+GLuint azgl_load_program_source(
+  GLenum type_1, char const *code_1,
+  ... /* Pairs repeat until 0-terminated */);
 
 AZUR_END_DECLS
