@@ -1,54 +1,70 @@
-//---
+//---------------------------------------------------------------------------//
+//  ,"  /\  ",    Azur: A game engine for CASIO fx-CG and PC                 //
+// |  _/__\_  |   Designed by Lephe' and the Planète Casio community.        //
+//  "._`\/'_."    License: MIT <https://opensource.org/licenses/MIT>         //
+//---------------------------------------------------------------------------//
 // azur.log: Logging utilities
+//
+// This header provides the basic logging utilities. Logs are emitted with the
+// azlog() macro, then filtered by level and printed to file.
+//
+// The main function is the azlog() macro, which takes a level parameter and a
+// printf()-style format:
+//
+//   azlog(ERROR, "rc = %d\n", rc);
+//   azlog(INFO, "Game saved!\n");
 //---
 
 #pragma once
 #include <azur/defs.h>
-AZUR_BEGIN_DECLS
+#include <stdio.h>
 
-/* Message levels, numbered by "severity". */
-enum {
-    AZLOG_DEBUG   = 0,
-    AZLOG_INFO    = 1,
-    AZLOG_WARN    = 2,
-    AZLOG_ERROR   = 3,
-    AZLOG_FATAL   = 4,
-};
+namespace azur::log {
 
-/* azlog_level(): Get the current logging level
-   Any message with a level at least the current logging level is printed. The
-   default logging level is AZLOG_ERROR in release builds, AZLOG_DEBUG in
-   development builds. */
-int azlog_level(void);
+/* DEBUG:  Disabled by default unless debug build; includes source file/line
+   INFO:   General information that is meaningful to the user (not developer)
+   WARN:   Unexpected behavior but program can still keep going
+   ERROR:  Erroneous behavior, abandoning some tasks
+   FATAL:  Complete panic; provokes exit(1); highest priority */
+enum class LogLevel { DEBUG, INFO, WARN, ERROR, FATAL };
 
-/* azlog_set_level(): Set the current logging level */
-void azlog_set_level(int level);
+/* Coloring options.
+   PLAIN:  No escape sequences; suitable for files and plain terminals.
+   ANSI:   ANSI escape sequences; suitable for terminals. */
+enum class LogStyle { PLAIN, ANSI };
 
-/* azlog(): Write an error message
-
-   This macro produces a line of log at the specified level. The AZLOG_ prefix
-   is added automatically by the macro, as well as standard function/line
-   information in development builds. */
-#define azlog(level, fmt, ...) \
-    azlog_write(AZLOG_ ## level, __FILE__, __LINE__, __func__, false, fmt, \
-        ## __VA_ARGS__)
-
-/* azlogc(): Continue an error message
-   Same as azlog(), but inhibits prefixes, for multi-part messages. */
-#define azlogc(level, fmt, ...) \
-    azlog_write(AZLOG_ ## level, __FILE__, __LINE__, __func__, true, fmt, \
-        ## __VA_ARGS__)
-
-/* Disable output in gint. */
-#ifdef AZUR_TERMINAL_NONE
-# undef azlog
-# undef azlogc
-# define azlog(level, fmt, ...)
-# define azlogc(level, fmt, ...)
-#endif
-
-/* azlog_write(): Support function for azlog() */
-void azlog_write(int level, char const *file, int line, char const *func,
+/* Produce a log message. See also azlog() and azlogc() for shorter versions.
+   level:  Message level
+   file:   File name (normally __FILE__)
+   line:   Line number (normally __LINE__)
+   func:   Function name (normally __func__)
+   cont:   Whether this is the continuation of a previous message
+   fmt...: print()-style format */
+void write(LogLevel level, char const *file, int line, char const *func,
     bool cont, char const *fmt, ...);
 
-AZUR_END_DECLS
+/* Get the minimum-level filter. Messages below the minimum level are filtered
+   out. The default is INFO in release builds, DEBUG in debug builds. */
+LogLevel minimumLevelFilter();
+
+/* Set the minimum-level filter. */
+void setMinimumLevelFilter(LogLevel level);
+
+/* Get the output stream for log messages. Default is stderr. */
+FILE *outputStream();
+
+/* Set the output stream for log messages. Since the library might output
+   messages until very late in execution, a valid output stream should always
+   be specified. When using a file, stderr should be set as the output stream
+   before closing the file at the end of execution. */
+void setOutputStream(FILE *fp, LogStyle style);
+
+} /* namespace azur::log */
+
+/* Quick macros that insert parameters automatically. */
+#define azlog(LEVEL, FMT, ...) \
+    azur::log::write(azur::log::LogLevel::LEVEL, __FILE__, __LINE__, \
+        __func__, false, FMT, ## __VA_ARGS__)
+#define azlogc(LEVEL, FMT, ...) \
+    azur::log::write(azur::log::LogLevel::LEVEL, __FILE__, __LINE__, \
+        __func__, true, FMT, ## __VA_ARGS__)

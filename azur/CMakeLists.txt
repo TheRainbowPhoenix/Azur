@@ -8,14 +8,14 @@
 configure_file(include/azur/config.h.in include/azur/config.h)
 
 set(SOURCES
-  src/log.c)
+  src/log.cpp)
 set(ASSETS)
 
 # SDL/OpenGL rendering
 if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
   list(APPEND SOURCES
-    src/sdl_opengl/init.c
-    src/sdl_opengl/util.c
+    src/gl/init.cpp
+    src/gl/util.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c")
 
   list(APPEND ASSETS

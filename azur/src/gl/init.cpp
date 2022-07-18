@@ -1,6 +1,6 @@
 #include <azur/azur.h>
 #include <azur/log.h>
-#include <azur/sdl_opengl/gl.h>
+#include <azur/gl/gl.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -214,10 +214,9 @@ static Uint32 handler(Uint32 interval, void *param)
 {
     *(int *)param = 1;
 
-    SDL_Event e = {
-        .user.type = SDL_USEREVENT,
-        .user.code = ml_event,
-    };
+    SDL_Event e;
+    e.user.type = SDL_USEREVENT;
+    e.user.code = ml_event;
     SDL_PushEvent(&e);
     return interval;
 }

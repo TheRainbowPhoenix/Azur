@@ -21,7 +21,7 @@ The following are Azur libraries:
 * **libazrp** is C library that implements Azur's Rendering Pipeline. On fx-CG, Azur uses a very unique rendering method that sacrifices some generality for a significant boost in performance, and this system has uses beyond games. (TODO: Currently still in the `azur/` folder)
 * **azur** is of course the engine itself.
 
-The following external projects are Azur by some of Azur's features, and maintained as submodules in `3rdparty/`:
+The following external projects are used by some of Azur's features, and maintained as submodules in `3rdparty/`:
 
 * [**gl3w**](https://github.com/skaslev/gl3w) is a minimalist OpenGL loader, which is used in Azur's OpenGL backend to load the core profile.
 * [**GLM**](https://glm.g-truc.net/0.9.9/index.html) is math library for graphics, which is interoperable with OpenGL shaders. In the future I hope to use libnum everywhere, but GLM is still useful in OpenGL-related code.
@@ -29,7 +29,7 @@ The following external projects are Azur by some of Azur's features, and maintai
 
 ## Building
 
-You *must* install into a different folder for each platform, as the headers would otherwise clash (particulary the auto-generated `<azur/config.h>`. The library names are different (eg. `libazur_emscripten.a`), but this is just to avoid confusing errors; the folders must still be different.
+You *must* install into a different folder for each platform, as the headers would otherwise clash (particulary the auto-generated `<azur/config.h>`). The library names are different (eg. `libazur_emscripten.a`), but this is just to avoid confusing errors; the folders must still be different.
 
 **Building for fx-CG**
 
@@ -90,4 +90,4 @@ endif()
 
 Back in 2021 I made a single repository for this engine, along with other programs that I intended to write with it. At the time I didn't intend to distribute the engine in any serious fashion, but that changed after people expressed interest in playing with [After Burner](https://www.planet-casio.com/Fr/programmes/programme4238-1-after-burner-lephenixnoir-jeux-add-ins.html).
 
-I split the original repository in May 2022 with `git filter-branch`, extracting Azur-related contents to this repository. I edited the history so that old commits can still be built, but mostly for the sake of preserving history; don't expect to be able to use these early commits out-of-the-box.
+I split the original repository in May 2022 with `git filter-branch`, extracting Azur-related contents to this repository. I patched old commits so they can still be built, but mostly for the sake of preserving history; don't expect to be able to use these early commits out-of-the-box.

@@ -43,7 +43,7 @@ int azur_init(char const *title, int window_width, int window_height);
 
    The update framerate is determined second. If AZUR_MAIN_LOOP_TIED is set,
    updates are set to run before renders (except before the very first render),
-   and update_ups is ignored is ignored. Otherwise, the target UPS is used.
+   and update_ups is ignored. Otherwise, the target UPS is used.
 
    The main loop stops whenever update() returns non-zero. */
 int azur_main_loop(
