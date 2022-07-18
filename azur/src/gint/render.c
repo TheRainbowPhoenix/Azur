@@ -107,7 +107,7 @@ void azrp_render_fragments(void)
     uint32_t cmd = commands_array[i];
 
     prof_enter_norec(azrp_perf_r61524);
-    r61524_start_frame(0, 244);
+    r61524_start_frame(0, DWIDTH-1, 0, DHEIGHT-1);
     prof_leave_norec(azrp_perf_r61524);
 
     while(1) {
