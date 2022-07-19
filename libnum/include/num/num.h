@@ -98,16 +98,16 @@ struct num8
     /* Comparisons with int */
 
     inline constexpr bool operator==(int const &i) {
-        return i == 0 && v == 0;
+        return (v | i) == 0;
     }
     inline constexpr bool operator<(int const &i) {
         return i >= 1;
     }
     inline constexpr bool operator<=(int const &i) {
-        return *this < i || *this == i;
+        return i + !v > 0;
     }
     inline constexpr bool operator>(int const &i) {
-        return i + (v == 0) <= 0;
+        return i + !v <= 0;
     }
     inline constexpr bool operator>=(int const &i) {
         return i <= 0;
@@ -346,8 +346,8 @@ concept is_num =
 inline constexpr num8::num8(num16 n): v(n.v) {}
 /* Casting to unsigned allows the use of shlr instead of shad */
 inline constexpr num8::num8(num32 n): v((uint32_t)n.v >> 8) {}
-/* Slightly inefficient; acceses both longwords of n.v, only one is needed */
-inline constexpr num8::num8(num64 n): v(n.v >> 24) {}
+/* Casting to 32-bit eliminates the unused high word */
+inline constexpr num8::num8(num64 n): v((uint32_t)n.v >> 24) {}
 
 inline constexpr num16::num16(num8 n): v(n.v) {}
 /* Casting to unsigned allows the use of shlr instead of shad */

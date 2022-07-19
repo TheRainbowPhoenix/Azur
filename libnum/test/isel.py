@@ -416,7 +416,7 @@ def printRawFunction(asm, sybl):
     # Eliminate labels that are defined but unused
     RE_LABEL = re.compile(r"^(\.[a-zA-Z_][a-zA-Z0-9_]*):$", re.MULTILINE)
     for label in RE_LABEL.findall(func):
-        if func.count(f"{label}:\n") == 1:
+        if func.count(label) == 1:
             func = func.replace(f"{label}:\n", "")
 
     print(func.strip())
