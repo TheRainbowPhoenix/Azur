@@ -1,10 +1,14 @@
-//---
+//---------------------------------------------------------------------------//
+//  ,"  /\  ",    Azur: A game engine for CASIO fx-CG and PC                 //
+// |  _/__\_  |   Designed by Lephe' and the Planète Casio community.        //
+//  "._`\/'_."    License: MIT <https://opensource.org/licenses/MIT>         //
+//---------------------------------------------------------------------------//
 // num.num: Fixed-point numerical types
 //
 // This header provides numerical types of various fixed-point sizes. The base
 // type num is num32, and other data structures outside of this header
-// (vectors, matrices, etc.) normally only use num. Other types are useful for
-// storage and sometimes intermediate computation steps.
+// (vectors, matrices, etc.) default to it. Other types are useful for storage
+// and sometimes intermediate computation steps.
 //---
 
 /* TODO: Conversion with float/double: use the binary format efficiently
@@ -15,14 +19,19 @@
    General idea for an fp -> num conversion:
    1. Literally just shift mantissa by exponent - num_fixed_position */
 
+/* TODO: Template specializations for std::integral_constant<int, VALUE> that
+   inlines at compile time to either (1) true/false if out of bounds, or (2)
+   coerce the int to the fixed point type */
+
 #pragma once
 
 #include <cstdint>
 #include <cstddef>
 
 #include <type_traits>
+#include <concepts>
 
-namespace libnum {
+namespace num {
 
 struct num8;
 struct num16;
@@ -288,7 +297,15 @@ struct num64
     }
 };
 
-/* Converting constructors (defined here for dependency reasons). */
+/* The following concept identifies the four num types */
+template<typename T>
+concept is_num =
+    std::same_as<T, num8> ||
+    std::same_as<T, num16> ||
+    std::same_as<T, num32> ||
+    std::same_as<T, num64>;
+
+/* Converting constructors */
 
 inline constexpr num8::num8(num16 n): v(n.v) {}
 /* Casting to unsigned allows the use of shlr instead of shad */
@@ -310,98 +327,72 @@ inline constexpr num64::num64(num8 n): v((uint64_t)n.v * 16777216) {}
 inline constexpr num64::num64(num16 n): v((int64_t)n.v * 16777216) {}
 inline constexpr num64::num64(num32 n): v((int64_t)n.v * 65536) {}
 
-/* The following type trait has value=true for exactly the four num types. */
-template<typename T>
-struct is_num {
-    static constexpr bool value =
-        std::is_same<T, num8>::value ||
-        std::is_same<T, num16>::value ||
-        std::is_same<T, num32>::value ||
-        std::is_same<T, num64>::value;
-};
+/* Internal comparisons */
 
-template<typename T>
-constexpr bool is_num_v = is_num<T>::value;
-
-/* Boolean logic (defined in the same way for all types). */
-
-template<typename T>
-typename std::enable_if<is_num_v<T>, bool>::type
-inline constexpr operator==(T const &left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator==(T const &left, T const &right) {
     return left.v == right.v;
 }
 
-template<typename T>
-typename std::enable_if<is_num_v<T>, bool>::type
-inline constexpr operator!=(T const &left, T const &right) {
-    return left.v !=right.v;
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator!=(T const &left, T const &right) {
+    return left.v != right.v;
 }
-template<typename T>
-typename std::enable_if<is_num_v<T>, bool>::type
-inline constexpr operator<(T const &left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator<(T const &left, T const &right) {
     return left.v < right.v;
 }
-template<typename T>
-typename std::enable_if<is_num_v<T>, bool>::type
-inline constexpr operator<=(T const &left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator<=(T const &left, T const &right) {
     return left.v <= right.v;
 }
-template<typename T>
-typename std::enable_if<is_num_v<T>, bool>::type
-inline constexpr operator>(T const &left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator>(T const &left, T const &right) {
     return left.v > right.v;
 }
-template<typename T>
-typename std::enable_if<is_num_v<T>, bool>::type
-inline constexpr operator>=(T const &left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator>=(T const &left, T const &right) {
     return left.v >= right.v;
 }
 
-/* Pure arithmetic operators (defined in the same way for all types). */
+/* Internal arithmetic operators */
 
-template<typename T>
-typename std::enable_if<is_num_v<T>, T>::type
-inline constexpr operator+(T left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr T operator+(T left, T const &right) {
     return (left += right);
 }
 
-template<typename T>
-typename std::enable_if<is_num_v<T>, T>::type
-inline constexpr operator-(T left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr T operator-(T left, T const &right) {
     return (left -= right);
 }
 
-template<typename T>
-typename std::enable_if<is_num_v<T>, T>::type
-inline constexpr operator*(T left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr T operator*(T left, T const &right) {
     return (left *= right);
 }
 
-template<typename T>
-typename std::enable_if<is_num_v<T>, T>::type
-inline constexpr operator/(T left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr T operator/(T left, T const &right) {
     return (left /= right);
 }
 
-template<typename T>
-typename std::enable_if<is_num_v<T>, T>::type
-inline constexpr operator%(T left, T const &right) {
+template<typename T> requires(is_num<T>)
+inline constexpr T operator%(T left, T const &right) {
     return (left %= right);
 }
 
-template<typename T>
-typename std::enable_if<is_num_v<T>, T>::type
-inline constexpr operator+(T const &op) {
+template<typename T> requires(is_num<T>)
+inline constexpr T operator+(T const &op) {
     return op;
 }
 
-template<typename T>
-typename std::enable_if<is_num_v<T>, T>::type
-inline constexpr operator-(T const &op) {
+template<typename T> requires(is_num<T>)
+inline constexpr T operator-(T const &op) {
     return T(0) - op;
 }
 
-/* Other specific operations. */
+/* Other specific operations */
 
 inline constexpr num32 num16::dmul(num16 const &x, num16 const &y)
 {
