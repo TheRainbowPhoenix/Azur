@@ -5,6 +5,8 @@
 #-----------------------------------------------------------------------------#
 # libnum build system
 
+include(CTest)
+
 add_library(num STATIC
   src/static_checks.cpp)
 
@@ -14,3 +16,17 @@ target_include_directories(num PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 install(TARGETS num DESTINATION ${LIBDIR})
 # Headers: azur/*.h
 install(DIRECTORY include/ DESTINATION ${INCDIR})
+
+#---
+# Testing
+#---
+
+set(TESTS
+  test/isel_num8.cpp)
+
+foreach(testfile IN LISTS TESTS)
+  add_test(NAME "${testfile}"
+    COMMAND python "${CMAKE_CURRENT_SOURCE_DIR}/test/isel.py"
+                   "${CMAKE_CURRENT_SOURCE_DIR}/${testfile}"
+                   -I "${CMAKE_CURRENT_SOURCE_DIR}/include")
+endforeach()

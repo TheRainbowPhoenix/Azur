@@ -34,6 +34,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 project(Azur VERSION 0.1 LANGUAGES C CXX ASM)
+include(CTest)
 
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
@@ -150,3 +151,10 @@ add_subdirectory(azur)
 
 # CMake module to find the library
 install(FILES FindAzur.cmake DESTINATION ${MODPATH})
+
+#---
+# Testing
+#---
+
+# Force --verbose on CTest
+add_custom_target(tests COMMAND ${CMAKE_CTEST_COMMAND} --verbose)
