@@ -94,6 +94,24 @@ struct num8
         v %= other.v;
         return *this;
     }
+
+    /* Comparisons with int */
+
+    inline constexpr bool operator==(int const &i) {
+        return i == 0 && v == 0;
+    }
+    inline constexpr bool operator<(int const &i) {
+        return i >= 1;
+    }
+    inline constexpr bool operator<=(int const &i) {
+        return *this < i || *this == i;
+    }
+    inline constexpr bool operator>(int const &i) {
+        return i + (v == 0) <= 0;
+    }
+    inline constexpr bool operator>=(int const &i) {
+        return i <= 0;
+    }
 };
 
 /* num16: Signed 8:8 fixed-point type
@@ -154,6 +172,24 @@ struct num16
     inline constexpr num16 &operator%=(num16 const &other) {
         v %= other.v;
         return *this;
+    }
+
+    /* Comparisons with int */
+
+    inline constexpr bool operator==(int const &i) {
+        return ((v & 0xff) == 0) && (v >> 8) == i;
+    }
+    inline constexpr bool operator<(int const &i) {
+        return (v >> 8) < i;
+    }
+    inline constexpr bool operator<=(int const &i) {
+        return (v >> 8) + ((v & 0xff) != 0) <= i;
+    }
+    inline constexpr bool operator>(int const &i) {
+        return (v >> 8) + ((v & 0xff) != 0) > i;
+    }
+    inline constexpr bool operator>=(int const &i) {
+        return (v >> 8) >= i;
     }
 };
 
