@@ -19,10 +19,6 @@
    General idea for an fp -> num conversion:
    1. Literally just shift mantissa by exponent - num_fixed_position */
 
-/* TODO: Template specializations for std::integral_constant<int, VALUE> that
-   inlines at compile time to either (1) true/false if out of bounds, or (2)
-   coerce the int to the fixed point type */
-
 #pragma once
 
 #include <cstdint>
@@ -103,15 +99,19 @@ struct num8
     inline constexpr bool operator<(int const &i) {
         return i >= 1;
     }
+    inline constexpr bool operator>=(int const &i) {
+        return i <= 0;
+    }
     inline constexpr bool operator<=(int const &i) {
         return i + !v > 0;
     }
     inline constexpr bool operator>(int const &i) {
         return i + !v <= 0;
     }
-    inline constexpr bool operator>=(int const &i) {
-        return i <= 0;
-    }
+
+    /* Limits as double */
+    static constexpr double minDouble = 0.0;
+    static constexpr double maxDouble = double(0xff) / 256;
 };
 
 /* num16: Signed 8:8 fixed-point type
@@ -148,7 +148,7 @@ struct num16
     inline constexpr explicit operator double() { return (double)v / 256; }
 
     /* num16 x num16 -> num32 multiplication
-       This is efficiently implemented with a muls.l instruction. */
+       This is efficiently implemented with a muls.w instruction. */
     static constexpr num32 dmul(num16 const &x, num16 const &y);
 
     /* Basic arithmetic */
@@ -162,7 +162,7 @@ struct num16
         return *this;
     }
     inline constexpr num16 &operator*=(num16 const &other) {
-        v = (v * other.v) >> 8;
+        v = (v * other.v) / 256;
         return *this;
     }
     inline constexpr num16 &operator/=(num16 const &other) {
@@ -177,20 +177,27 @@ struct num16
     /* Comparisons with int */
 
     inline constexpr bool operator==(int const &i) {
-        return ((v & 0xff) == 0) && (v >> 8) == i;
+        return (int16_t)i == i && (i << 8) == v;
     }
     inline constexpr bool operator<(int const &i) {
         return (v >> 8) < i;
     }
+    inline constexpr bool operator>=(int const &i) {
+        return (v >> 8) >= i;
+    }
+    /* Unfortunately the branchless version for this test is expressed in terms
+       of `v`, not `i`, so it does not simplify well when `i` is known. In that
+       case, writing eg. `x > num16(0)` is faster than `x > 0`. */
     inline constexpr bool operator<=(int const &i) {
         return (v >> 8) + ((v & 0xff) != 0) <= i;
     }
     inline constexpr bool operator>(int const &i) {
         return (v >> 8) + ((v & 0xff) != 0) > i;
     }
-    inline constexpr bool operator>=(int const &i) {
-        return (v >> 8) >= i;
-    }
+
+    /* Limits as double */
+    static constexpr double minDouble = -128.0;
+    static constexpr double maxDouble = double(0x7fff) / 256;
 };
 
 /* num32: Signed 16:16 fixed-point type
@@ -257,6 +264,28 @@ struct num32
         v %= other.v;
         return *this;
     }
+
+    /* Comparisons with int */
+
+    inline constexpr bool operator==(int const &i) {
+        return (int16_t)i == i && (i << 16) == v;
+    }
+    inline constexpr bool operator<(int const &i) {
+        return (v >> 16) < i;
+    }
+    inline constexpr bool operator>=(int const &i) {
+        return (v >> 16) >= i;
+    }
+    inline constexpr bool operator<=(int const &i) {
+        return (v >> 16) + ((v & 0xffff) != 0) <= i;
+    }
+    inline constexpr bool operator>(int const &i) {
+        return (v >> 16) + ((v & 0xffff) != 0) > i;
+    }
+
+    /* Limits as double */
+    static constexpr double minDouble = -32768.0;
+    static constexpr double maxDouble = double(0x7fffffff) / 65536;
 };
 
 /* Arithmetic with integers */
@@ -331,6 +360,11 @@ struct num64
         v %= other.v;
         return *this;
     }
+
+    /* Limits as double; note that the double doesn't have enough precision to
+       represent the entirety of the maximum value. */
+    static constexpr double minDouble = -2147483648.0;
+    static constexpr double maxDouble = 2147483648.0 - double(1) / 2147483648;
 };
 
 /* The following concept identifies the four num types */
@@ -355,7 +389,7 @@ inline constexpr num16::num16(num32 n): v((uint32_t)n.v >> 8) {}
 inline constexpr num16::num16(num64 n): v(n.v >> 24) {}
 
 inline constexpr num32::num32(num8 n): v(n.v * 256) {}
-inline constexpr num32::num32(num16 n): v(n.v * 256) {}
+inline constexpr num32::num32(num16 n): v((int32_t)n.v * 256) {}
 inline constexpr num32::num32(num64 n): v(n.v >> 16) {}
 
 inline constexpr num64::num64(num8 n): v((uint64_t)n.v * 16777216) {}
@@ -369,7 +403,6 @@ template<typename T> requires(is_num<T>)
 inline constexpr bool operator==(T const &left, T const &right) {
     return left.v == right.v;
 }
-
 template<typename T> requires(is_num<T>)
 inline constexpr bool operator!=(T const &left, T const &right) {
     return left.v != right.v;

@@ -35,7 +35,7 @@
 # is a shortcut for the number of "non-trivial" instructions, and currently
 # expands to `[!mov && !rts]`.
 #
-# A test is a normal C++ source built using the library, which exposes
+# A test is a normal C++ source file built using the library, which exposes
 # functions with C linkage (ie. no name mangling) and has specifications in
 # comments of the form:
 #

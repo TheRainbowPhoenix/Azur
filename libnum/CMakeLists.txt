@@ -8,9 +8,9 @@
 include(CTest)
 
 add_library(num STATIC
-  src/static_checks.cpp)
+  src/str.cpp)
 
-target_include_directories(num PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(num PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # Library file: libnum.a
 install(TARGETS num DESTINATION ${LIBDIR})
@@ -18,13 +18,29 @@ install(TARGETS num DESTINATION ${LIBDIR})
 install(DIRECTORY include/ DESTINATION ${INCDIR})
 
 #---
-# Testing
+# Unit tests
 #---
 
-set(TESTS
-  test/isel_num8.cpp)
+set(UNIT_TESTS
+  test/unit_scalar.cpp
+  test/unit_static.cpp)
 
-foreach(testfile IN LISTS TESTS)
+if(NOT CMAKE_CROSSCOMPILING)
+  add_executable(numtest ${UNIT_TESTS})
+  target_link_libraries(numtest PUBLIC num)
+
+  add_test(NAME "UnitTests" COMMAND numtest)
+endif()
+
+#---
+# Performance tests
+#---
+
+set(PERF_TESTS
+  test/isel_num8.cpp
+  test/isel_num16.cpp)
+
+foreach(testfile IN LISTS PERF_TESTS)
   add_test(NAME "${testfile}"
     COMMAND python "${CMAKE_CURRENT_SOURCE_DIR}/test/isel.py"
                    "${CMAKE_CURRENT_SOURCE_DIR}/${testfile}"
