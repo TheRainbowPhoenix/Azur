@@ -38,7 +38,8 @@ endif()
 
 set(PERF_TESTS
   test/isel_num8.cpp
-  test/isel_num16.cpp)
+  test/isel_num16.cpp
+  test/isel_num32.cpp)
 
 foreach(testfile IN LISTS PERF_TESTS)
   add_test(NAME "${testfile}"
