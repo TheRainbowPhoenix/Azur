@@ -1,5 +1,5 @@
 #include <num/num.h>
-using namespace num;
+using namespace libnum;
 
 /* Digits of the decimal part, from most to least significant. Returns the
    number of digits (which is 0 when x=0) */

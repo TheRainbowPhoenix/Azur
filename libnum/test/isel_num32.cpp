@@ -1,5 +1,5 @@
 #include <num/num.h>
-using namespace num;
+using namespace libnum;
 
 extern "C" {
 

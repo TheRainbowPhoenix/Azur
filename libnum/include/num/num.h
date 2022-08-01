@@ -27,7 +27,7 @@
 #include <type_traits>
 #include <concepts>
 
-namespace num {
+namespace libnum {
 
 struct num8;
 struct num16;

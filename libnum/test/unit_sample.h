@@ -25,7 +25,7 @@
 #include <stdint.h>
 
 #include <num/num.h>
-using namespace num;
+using namespace libnum;
 
 //---
 // Integer sampling

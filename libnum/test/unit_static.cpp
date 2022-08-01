@@ -6,7 +6,7 @@
 // unit_static.cpp: Compile-time evaluation tests
 
 #include <num/num.h>
-using namespace num;
+using namespace libnum;
 
 static_assert(sizeof(num8) == 1);
 static_assert(sizeof(num16) == 2);
