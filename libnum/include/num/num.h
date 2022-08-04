@@ -90,6 +90,18 @@ struct num8
         v %= other.v;
         return *this;
     }
+    inline constexpr num8 floor() {
+        return num8(0);
+    }
+    /* Warning: num8::ceil() always overflows! */
+    inline constexpr num8 ceil() {
+        return num8(0);
+    }
+    inline constexpr num8 frac() {
+        num8 x;
+        x.v = v;
+        return x;
+    }
 
     /* Comparisons with int */
 
@@ -109,6 +121,9 @@ struct num8
         return i + !v <= 0;
     }
 
+    /* Limits as int */
+    static constexpr int minInt = 0;
+    static constexpr int maxInt = 0;
     /* Limits as double */
     static constexpr double minDouble = 0.0;
     static constexpr double maxDouble = double(0xff) / 256;
@@ -173,6 +188,21 @@ struct num16
         v %= other.v;
         return *this;
     }
+    inline constexpr num16 floor() {
+        num16 x;
+        x.v = v & 0xff00;
+        return x;
+    }
+    inline constexpr num16 ceil() {
+        num16 x;
+        x.v = ((v - 1) | 0xff) + 1;
+        return x;
+    }
+    inline constexpr num16 frac() {
+        num16 x;
+        x.v = v & 0xff;
+        return x;
+    }
 
     /* Comparisons with int */
 
@@ -195,6 +225,9 @@ struct num16
         return (v >> 8) + ((v & 0xff) != 0) > i;
     }
 
+    /* Limits as int */
+    static constexpr int minInt = 0;
+    static constexpr int maxInt = 0x7f;
     /* Limits as double */
     static constexpr double minDouble = -128.0;
     static constexpr double maxDouble = double(0x7fff) / 256;
@@ -264,6 +297,21 @@ struct num32
         v %= other.v;
         return *this;
     }
+    inline constexpr num32 floor() {
+        num32 x;
+        x.v = v & 0xffff0000;
+        return x;
+    }
+    inline constexpr num32 ceil() {
+        num32 x;
+        x.v = ((v - 1) | 0xffff) + 1;
+        return x;
+    }
+    inline constexpr num32 frac() {
+        num32 x;
+        x.v = v & 0xffff;
+        return x;
+    }
 
     /* Comparisons with int */
 
@@ -283,6 +331,9 @@ struct num32
         return (v >> 16) + ((v & 0xffff) != 0) > i;
     }
 
+    /* Limits as int */
+    static constexpr int minInt = 0;
+    static constexpr int maxInt = 0x7fff;
     /* Limits as double */
     static constexpr double minDouble = -32768.0;
     static constexpr double maxDouble = double(0x7fffffff) / 65536;
@@ -360,7 +411,25 @@ struct num64
         v %= other.v;
         return *this;
     }
+    inline constexpr num64 floor() {
+        num64 x;
+        x.v = v & 0xffffffff00000000ull;
+        return x;
+    }
+    inline constexpr num64 ceil() {
+        num64 x;
+        x.v = ((v - 1) | 0xffffffffull) + 1;
+        return x;
+    }
+    inline constexpr num64 frac() {
+        num64 x;
+        x.v = v & 0xffffffffull;
+        return x;
+    }
 
+    /* Limits as int */
+    static constexpr int minInt = 0;
+    static constexpr int maxInt = 0x7fffffff;
     /* Limits as double; note that the double doesn't have enough precision to
        represent the entirety of the maximum value. */
     static constexpr double minDouble = -2147483648.0;

@@ -76,6 +76,8 @@ int main(void)
         c.CHECK(num8(num32(x)) == x);
         c.CHECK(num8(num64(x)) == x);
         c.CHECK(-x + x == 0);
+        c.CHECK(x.floor() == 0 && x.ceil() == 0 /* overflow */);
+        c.CHECK(x.frac() == x);
     });
 
     printf("Testing binary laws on num8...\n");
@@ -93,6 +95,9 @@ int main(void)
         c.CHECK(num16(num32(x)) == x);
         c.CHECK(num16(num64(x)) == x);
         c.CHECK(-x + x == 0);
+        c.CHECK(x.floor() <= x && ((int)x == num16::maxInt || x <= x.ceil()));
+        c.CHECK((x.ceil() - x.floor()) == num16(x != num16((int)x)));
+        c.CHECK(x.floor() + x.frac() == x);
     });
 
     printf("Testing binary laws on num16...\n");
@@ -109,6 +114,9 @@ int main(void)
         c.CHECK(num32(num16(x)).v >> 8 == (int16_t)(x.v >> 8));
         c.CHECK(num32(num64(x)) == x);
         c.CHECK(-x + x == 0);
+        c.CHECK(x.floor() <= x && ((int)x == num32::maxInt || x <= x.ceil()));
+        c.CHECK((x.ceil() - x.floor()) == num32(x != num32((int)x)));
+        c.CHECK(x.floor() + x.frac() == x);
     });
 
     printf("Testing binary laws on num32...\n");
@@ -125,6 +133,9 @@ int main(void)
         c.CHECK(num64(num16(x)).v >> 24 == (int16_t)(x.v >> 24));
         c.CHECK(num64(num32(x)).v >> 16 == (int32_t)(x.v >> 16));
         c.CHECK(-x + x == num64(0));
+        c.CHECK(x.floor() <= x && ((int)x == num64::maxInt || x <= x.ceil()));
+        c.CHECK((x.ceil() - x.floor()) == num64(x != num64((int)x)));
+        c.CHECK(x.floor() + x.frac() == x);
     });
 
     return (success ? 0 : 1);

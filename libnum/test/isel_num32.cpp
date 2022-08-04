@@ -75,4 +75,22 @@ bool num32_lt_0(num32 x)
     return x < num32(0);
 }
 
+// num32_floor: %<=2+[mov.l]
+num32 num32_floor(num32 x)
+{
+    return x.floor();
+}
+
+// num32_ceil: %<=4
+num32 num32_ceil(num32 x)
+{
+    return x.ceil();
+}
+
+// num32_frac: [extu.w] && %=1
+num32 num32_frac(num32 x)
+{
+    return x.frac();
+}
+
 } /* extern "C" */

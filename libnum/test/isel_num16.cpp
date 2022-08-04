@@ -75,4 +75,22 @@ bool num16_lt_0(num16 x)
     return x < num16(0);
 }
 
+// num16_floor: [and] && %<=3
+num16 num16_floor(num16 x)
+{
+    return x.floor();
+}
+
+// num16_ceil: %<=4
+num16 num16_ceil(num16 x)
+{
+    return x.ceil();
+}
+
+// num16_frac: [extu.b] && %=1
+num16 num16_frac(num16 x)
+{
+    return x.frac();
+}
+
 } /* extern "C" */

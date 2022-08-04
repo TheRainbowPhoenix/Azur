@@ -47,4 +47,10 @@ bool num8_gt(num8 x, int i)
     return x > i;
 }
 
+// num8_floor: %=0
+num8 num8_floor(num8 x)
+{
+    return x.floor();
+}
+
 } /* extern "C" */
