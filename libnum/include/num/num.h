@@ -5,10 +5,37 @@
 //---------------------------------------------------------------------------//
 // num.num: Fixed-point numerical types
 //
-// This header provides numerical types of various fixed-point sizes. The base
-// type num is num32, and other data structures outside of this header
-// (vectors, matrices, etc.) default to it. Other types are useful for storage
-// and sometimes intermediate computation steps.
+// This header provides fixed-point numerical types with the following shapes:
+//   num8:    0: 8, unsigned  (only values 0.x)
+//   num16:   8: 8, signed    (from -128 to 127.x)
+//   num32:  16:16, signed    (from -32768 to 32767.x)
+//   num64:  32:32, signed    (from -2147483648 to 2147483647.x)
+//
+// The canonical type for computations is `num`, which is an alias for num32.
+//
+// Type safety is enforced by never allowing implicit casts whenever that would
+// narrow the range. To convert a num64 to a num32 or an int to a num16, the
+// constructor must be called explicitly. This means that overflows can only
+// happen during computation and explicit conversion, which are easier to track
+// down and check than implicit conversions.
+//
+// TODO: Currently all constructors are explicit, even eg. num8 -> num16
+//
+// The API for each fixed-point type consists of:
+// - Explicit constructors and cast operators to convert to and from integers,
+//   floating-point types and other fixed-point types.
+// - Minimum and maximum values as int (minInt, maxInt) and double (minDouble,
+//   maxDouble). Note that num64 values don't fit in a double so the accuracy
+//   of the latter two isn't perfect.
+// - Basic arithmetic (+, -, *, /, %, +=, -=, *=, /=, %=).
+// - Comparisons with itself and with int (range-safe).
+// - Conversions to strings:
+//   * strToBuffer(): appends the string representation of the value and a NUL
+//     byte to a char *; returns the number of characters (excluding the NUL).
+//     (TODO: experimental)
+//   * TODO: Other string conversion functions with more options
+// - floor(), ceil() and frac() methods
+// - TODO: More functions to do the equivalent of <math.h> without floats
 //---
 
 /* TODO: Conversion with float/double: use the binary format efficiently
@@ -127,6 +154,9 @@ struct num8
     /* Limits as double */
     static constexpr double minDouble = 0.0;
     static constexpr double maxDouble = double(0xff) / 256;
+
+    /* String representations */
+    int strToBuffer(char *str);
 };
 
 /* num16: Signed 8:8 fixed-point type
@@ -231,6 +261,9 @@ struct num16
     /* Limits as double */
     static constexpr double minDouble = -128.0;
     static constexpr double maxDouble = double(0x7fff) / 256;
+
+    /* String representations */
+    int strToBuffer(char *str);
 };
 
 /* num32: Signed 16:16 fixed-point type
@@ -337,6 +370,9 @@ struct num32
     /* Limits as double */
     static constexpr double minDouble = -32768.0;
     static constexpr double maxDouble = double(0x7fffffff) / 65536;
+
+    /* String representations */
+    int strToBuffer(char *str);
 };
 
 /* Arithmetic with integers */
@@ -434,6 +470,9 @@ struct num64
        represent the entirety of the maximum value. */
     static constexpr double minDouble = -2147483648.0;
     static constexpr double maxDouble = 2147483648.0 - double(1) / 2147483648;
+
+    /* String representations */
+    int strToBuffer(char *str);
 };
 
 /* The following concept identifies the four num types */

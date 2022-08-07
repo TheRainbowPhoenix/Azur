@@ -21,15 +21,23 @@ install(DIRECTORY include/ DESTINATION ${INCDIR})
 # Unit tests
 #---
 
-set(UNIT_TESTS
+set(UNIT_TESTS_SCALAR
   test/unit_scalar.cpp
   test/unit_static.cpp)
 
-if(NOT CMAKE_CROSSCOMPILING)
-  add_executable(numtest ${UNIT_TESTS})
-  target_link_libraries(numtest PUBLIC num)
+set(UNIT_TESTS_STR
+  test/unit_str.cpp)
 
-  add_test(NAME "UnitTests" COMMAND numtest)
+if(NOT CMAKE_CROSSCOMPILING)
+  add_executable(numtest_scalar ${UNIT_TESTS_SCALAR})
+  target_link_libraries(numtest_scalar PUBLIC num)
+  add_test(NAME "UnitTestsScalar" COMMAND numtest_scalar)
+endif()
+
+if(NOT CMAKE_CROSSCOMPILING)
+  add_executable(numtest_str ${UNIT_TESTS_STR})
+  target_link_libraries(numtest_str PUBLIC num)
+  add_test(NAME "UnitTestsStr" COMMAND numtest_str)
 endif()
 
 #---
