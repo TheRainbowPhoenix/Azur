@@ -37,42 +37,50 @@ _azrp_shader_triangle:
 	mov.w	@r5+, _color	/* color */
 	mulu.w	r4, r0
 
-	add	#2, r5
-	nop
-
 	mov.l	r8, @-r15
-	sub	r2, r3
+	add	#2, r5
 
 	mov.l	r9, @-r15
-	add	#1, r3
+	sub	r2, r3
 
 	mov.l	r10, @-r15
-	sts	macl, r0
+	add	#1, r3
 
 	mov.l	r11, @-r15
-	add	r0, _frag
+	sts	macl, r0
 
 	ldrs	2f
-	add	r2, _frag
+	add	r0, _frag
 
 	ldre	3f
 	add	r2, _frag
 
 	mov.l	r12, @-r15
-	sub	r3, r4
+	add	r2, _frag
 
 	mov.l	r13, @-r15
 	sub	r3, r4
 
 	mov.l	r14, @-r15
-	mov	#-31, r14
+	sub	r3, r4
 
 	mov.l	@r5, _u
+	mov	#-31, r14
+
 	mov.l	@(4, r5), _v
+	add	#-2, _frag
+
 	mov.l	@(8, r5), _w
+	nop
+
 	mov.l	@(12, r5), _du_x
+	not	_u, _u
+
 	mov.l	@(16, r5), _dv_x
+	not	_v, _v
+
 	mov.l	@(20, r5), _dw_x
+	not	_w, _w
 
 	/* Loop on y */
 1:	ldrc	r3
@@ -80,30 +88,24 @@ _azrp_shader_triangle:
 
 	/* Loop on x */
 2:	mov	_u, r0
-	or	_v, r0
+	and	_v, r0
 
-	or	_w, r0
-	nop
+	and	_w, r0
+	mov.w	@_frag+, r2
 
 	shad	r14, r0
-	nop
-
-	not	r0, r0
 	nop
 
 	and	_frag, r0
 	nop
 
-	add	#2, _frag
+	sub	_du_x, _u
 	nop
 
-	add	_du_x, _u
+	sub	_dv_x, _v
 	mov.w	_color, @r0
 
-	add	_dv_x, _v
-	nop
-
-	add	_dw_x, _w
+	sub	_dw_x, _w
 3:	nop
 
 	/* Sloooow */
@@ -113,19 +115,23 @@ _azrp_shader_triangle:
 	dt	r1
 	mov.l	@(28, r5), r2
 
-	add	r0, _u
+	sub	r0, _u
 	mov.l	@(32, r5), r0
 
-	add	r2, _v
+	sub	r2, _v
 	nop
 
 	bf.s	1b
-	add	r0, _w
+	sub	r0, _w
 
 	add	#-12, r5
 	mov	#0, r0
 
 	/* 1 cycle lost */
+
+	not	_u, _u
+	not	_v, _v
+	not	_w, _w
 
 	mov.l	_u, @(12, r5)
 	mov.l	_v, @(16, r5)
