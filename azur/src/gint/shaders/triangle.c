@@ -48,51 +48,6 @@ struct command {
    int du_row, dv_row, dw_row;
 };
 
-//---
-
-// TODO: Write in assembler
-void azrp_shader_triangle_2(void *uniforms0, void *command0, void *fragment0)
-{
-    int width = (int)uniforms0;
-    struct command *cmd = command0;
-    uint16_t *frag = fragment0;
-
-    frag += cmd->x_min + width * cmd->y;
-
-    int u = cmd->u0;
-    int v = cmd->v0;
-    int w = cmd->w0;
-
-    for(int y = 0; y < cmd->height_frag; y++) {
-
-        for(int x = cmd->x_min; x <= cmd->x_max; x++) {
-            if((u | v | w) > 0) {
-                frag[x] = cmd->color;
-            }
-
-            u += cmd->du_x;
-            v += cmd->dv_x;
-            w += cmd->dw_x;
-        }
-
-        frag += width;
-        u += cmd->du_row;
-        v += cmd->dv_row;
-        w += cmd->dw_row;
-    }
-
-    cmd->u0 = u;
-    cmd->v0 = v;
-    cmd->w0 = w;
-
-    /* Prepare next fragment */
-    cmd->y = 0;
-    cmd->height_total -= cmd->height_frag;
-    cmd->height_frag = min(azrp_frag_height, cmd->height_total);
-}
-
-//---
-
 static int edge_start(int x1, int y1, int x2, int y2, int px, int py)
 {
     return (y2 - y1) * (px - x1) - (x2 - x1) * (py - y1);
