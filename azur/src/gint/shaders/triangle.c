@@ -29,25 +29,29 @@ struct command {
    uint8_t shader_id;
    /* Local y coordinate of the first line in the fragment */
    uint8_t y;
+   /* Numebr of lines to render total, including this fragment */
+   uint8_t height_total;
    /* Number of lines to render on the current fragment */
    uint8_t height_frag;
-   /* Numebr of lines to render total, includnig this fragment */
-   uint8_t height_total;
    /* Rectangle along the x coordinates (x_max included) */
    uint16_t x_min, x_max;
    /* Color */
    uint16_t color;
+   uint16_t _;
+
    /* Initial barycentric coordinates */
    int u0, v0, w0;
-   /* Variation of each coordinate for a movement in x/y */
+   /* Variation of each coordinate for a movement in x */
    int du_x, dv_x, dw_x;
-   int du_y, dv_y, dw_y;
+   /* Variation of each coordinate for a movement in y while canceling rows's
+      movements in x */
+   int du_row, dv_row, dw_row;
 };
 
 //---
 
 // TODO: Write in assembler
-void azrp_shader_triangle(void *uniforms0, void *command0, void *fragment0)
+void azrp_shader_triangle_2(void *uniforms0, void *command0, void *fragment0)
 {
     int width = (int)uniforms0;
     struct command *cmd = command0;
@@ -55,12 +59,11 @@ void azrp_shader_triangle(void *uniforms0, void *command0, void *fragment0)
 
     frag += cmd->x_min + width * cmd->y;
 
-    int u, v, w;
+    int u = cmd->u0;
+    int v = cmd->v0;
+    int w = cmd->w0;
 
     for(int y = 0; y < cmd->height_frag; y++) {
-        u = cmd->u0;
-        v = cmd->v0;
-        w = cmd->w0;
 
         for(int x = cmd->x_min; x <= cmd->x_max; x++) {
             if((u | v | w) > 0) {
@@ -73,10 +76,14 @@ void azrp_shader_triangle(void *uniforms0, void *command0, void *fragment0)
         }
 
         frag += width;
-        cmd->u0 += cmd->du_y;
-        cmd->v0 += cmd->dv_y;
-        cmd->w0 += cmd->dw_y;
+        u += cmd->du_row;
+        v += cmd->dv_row;
+        w += cmd->dw_row;
     }
+
+    cmd->u0 = u;
+    cmd->v0 = v;
+    cmd->w0 = w;
 
     /* Prepare next fragment */
     cmd->y = 0;
@@ -100,6 +107,9 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color)
     int min_y = max(0, min(y1, min(y2, y3)));
     int max_y = min(azrp_height-1, max(y1, max(y2, y3)));
 
+    if(min_x >= max_x || min_y >= max_y)
+        return;
+
     /* TODO: Have a proper way to do optimized-division by azrp_frag_height
        TODO: Also account for first-fragment offset */
     int frag_first = min_y >> 4;
@@ -119,13 +129,18 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color)
     /* Vector products for barycentric coordinates */
     cmd.u0 = edge_start(x2, y2, x3, y3, min_x, min_y);
     cmd.du_x = y3 - y2;
-    cmd.du_y = x2 - x3;
+    int du_y = x2 - x3;
     cmd.v0 = edge_start(x3, y3, x1, y1, min_x, min_y);
     cmd.dv_x = y1 - y3;
-    cmd.dv_y = x3 - x1;
+    int dv_y = x3 - x1;
     cmd.w0 = edge_start(x1, y1, x2, y2, min_x, min_y);
     cmd.dw_x = y2 - y1;
-    cmd.dw_y = x1 - x2;
+    int dw_y = x1 - x2;
+
+    int columns = max_x - min_x + 1;
+    cmd.du_row = du_y - columns * cmd.du_x;
+    cmd.dv_row = dv_y - columns * cmd.dv_x;
+    cmd.dw_row = dw_y - columns * cmd.dw_x;
 
     azrp_queue_command(&cmd, sizeof cmd, frag_first, frag_count);
     prof_leave(azrp_perf_cmdgen);
