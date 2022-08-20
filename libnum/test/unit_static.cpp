@@ -6,12 +6,17 @@
 // unit_static.cpp: Compile-time evaluation tests
 
 #include <num/num.h>
+#include <num/vec.h>
 using namespace libnum;
 
 static_assert(sizeof(num8) == 1);
 static_assert(sizeof(num16) == 2);
 static_assert(sizeof(num32) == 4);
 static_assert(sizeof(num64) == 8);
+
+static_assert(sizeof(vec2) == sizeof(num[2]));
+static_assert(sizeof(vec<short,3>) == sizeof(short[3]));
+static_assert(sizeof(vec<double,4>) == sizeof(double[4]));
 
 static_assert(num8(1).v == 0x00);
 static_assert(num8(0.5).v == 0x80);
