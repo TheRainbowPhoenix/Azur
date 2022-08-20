@@ -201,6 +201,8 @@ void azrp_image(int x, int y, bopti_image_t const *image);
 void azrp_subimage(int x, int y, bopti_image_t const *image,
    int left, int top, int width, int height, int flags);
 
+void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color);
+
 /* See below for more detailed image functions. Dynamic effects are provided
    with the same naming convention as gint. */
 
@@ -211,6 +213,7 @@ void azrp_shader_clear_configure(void);
 void azrp_shader_image_rgb16_configure(void);
 void azrp_shader_image_p8_configure(void);
 void azrp_shader_image_p4_configure(void);
+void azrp_shader_triangle_configure(void);
 
 //---
 // Performance indicators
