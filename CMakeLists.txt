@@ -74,17 +74,10 @@ if(AZUR_PLATFORM STREQUAL gint)
   find_package(LibProf 2.4 REQUIRED)
   link_libraries(LibProf::LibProf Gint::Gint)
 
-  # Default to the fxSDK install path
-  if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX "${FXSDK_COMPILER_INSTALL}" CACHE PATH "..." FORCE)
-  endif()
-
-  # The fxSDK install path has a slightly different structure
-  if(CMAKE_INSTALL_PREFIX STREQUAL "${FXSDK_COMPILER_INSTALL}")
-    set(LIBDIR ".")
-    set(INCDIR "include")
-    set(MODPATH "${FXSDK_CMAKE_MODULE_PATH}")
-  endif()
+  # Install in the fxSDK sysroot
+  set(LIBDIR "${FXSDK_LIB}")
+  set(INCDIR "${FXSDK_INCLUDE}")
+  set(MODPATH "${FXSDK_CMAKE_MODULE_PATH}")
 endif()
 
 if(AZUR_PLATFORM STREQUAL linux)

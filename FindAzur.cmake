@@ -4,9 +4,9 @@ set(AZUR_PATH "$ENV{AZUR_PATH_${AZUR_PLATFORM}}")
 
 if(NOT "${FXSDK_PLATFORM_LONG}" STREQUAL "")
   set(AZUR_PLATFORM gint)
-  set(AZUR_PATH "${FXSDK_COMPILER_INSTALL}")
+  set(AZUR_PATH "${FXSDK_LIB}")
   set(AZUR_LIB "${AZUR_PATH}/libazur_${AZUR_PLATFORM}.a")
-  set(AZUR_INCLUDE "${AZUR_PATH}/include")
+  set(AZUR_INCLUDE "${FXSDK_INCLUDE}")
 
   message("(Azur) Using the fxSDK compiler path: ${AZUR_LIB}")
   message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
@@ -52,6 +52,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("(Azur) Library version found in header: ${AZUR_VERSION}")
 
+# TODO: ${AZUR_PATH}/lib will not work with the fxSDK sysroot
 set(AZUR_3RDPARTY "")
 set(AZUR_LIB_GL3W "${AZUR_PATH}/lib/libazur_${AZUR_PLATFORM}_gl3w.a")
 set(AZUR_LIB_IMGUI "${AZUR_PATH}/lib/libazur_${AZUR_PLATFORM}_imgui.a")

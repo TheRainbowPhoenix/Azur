@@ -33,7 +33,7 @@ You *must* install into a different folder for each platform, as the headers wou
 
 **Building for fx-CG**
 
-Use the [fxSDK toolchain](https://gitea.planet-casio.com/Lephenixnoir/fxsdk). When building with the fxSDK, `AZUR_PLATFORM=gint` is assumed and the compiler's data folder is used to install the library.
+Use the [fxSDK toolchain](https://gitea.planet-casio.com/Lephenixnoir/fxsdk). When building with the fxSDK, `AZUR_PLATFORM=gint` is assumed and the fxSDK sysroot is used to install the library.
 
 ```
 % fxsdk build-cg install
