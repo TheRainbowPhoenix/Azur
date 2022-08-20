@@ -49,7 +49,7 @@ extern uint16_t *azrp_frag;
 
 /* Maximum number of commands that can be queued. (This is only one of two
    limits, the other being the size of the command data.) */
-#define AZRP_MAX_COMMANDS 256
+#define AZRP_MAX_COMMANDS 1024
 
 /* Maximum number of shaders that can be defined. (This is a loose limit). */
 #define AZRP_MAX_SHADERS 32
