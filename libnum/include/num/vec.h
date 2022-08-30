@@ -162,6 +162,16 @@ inline constexpr vec<T,N> &operator/=(vec<T,N> &lhs, T const &rhs) {
 }
 
 template<typename T, int N>
+inline constexpr vec<T,N> operator+(vec<T,N> const &lhs) {
+    return lhs;
+}
+template<typename T, int N>
+inline constexpr vec<T,N> operator-(vec<T,N> lhs) {
+    for(int i = 0; i < N; i++)
+        lhs[i] = -lhs[i];
+    return lhs;
+}
+template<typename T, int N>
 inline constexpr vec<T,N> operator+(vec<T,N> lhs, vec<T,N> const &rhs) {
     return lhs += rhs;
 }
