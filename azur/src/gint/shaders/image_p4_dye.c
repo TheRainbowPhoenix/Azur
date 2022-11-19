@@ -14,8 +14,7 @@ void azrp_subimage_p4_dye(int x, int y, image_t const *img,
     struct gint_image_box box = { x, y, w, h, left, top };
     struct gint_image_cmd cmd;
 
-    if(gint_image_mkcmd(&box, img, eff, true, true, &cmd, azrp_width,
-            azrp_height)) {
+    if(gint_image_mkcmd(&box, img, eff, true, true, &cmd, &azrp_window)) {
         cmd.effect += 4;
         cmd.color_1 = image_alpha(img->format);
         cmd.color_2 = dye_color;

@@ -18,6 +18,8 @@ int azrp_frag_offset;
 int azrp_frag_count;
 /* Height of fragment. */
 int azrp_frag_height;
+/* dwindow settings for the display ({ 0, 0, azrp_width, azrp_height }). */
+struct dwindow azrp_window;
 
 /* Number and total size of queued commands. */
 static int commands_count=0, commands_length=0;
@@ -170,6 +172,8 @@ static void update_size(void)
         azrp_width = 198, azrp_height = 112, azrp_frag_height = 16;
     else if(azrp_scale == 3)
         azrp_width = 132, azrp_height = 75,  azrp_frag_height = 16;
+
+    azrp_window = (struct dwindow){ 0, 0, azrp_width, azrp_height };
 }
 
 void azrp_config_scale(int scale)

@@ -115,6 +115,8 @@ extern int azrp_frag_count;
 extern int azrp_frag_offset;
 /* Height of fragments. */
 extern int azrp_frag_height;
+/* dwindow settings for the display ({ 0, 0, azrp_width, azrp_height }). */
+extern struct dwindow azrp_window;
 
 /* azrp_config_scale(): Select the renderer's super-scaling factor
 

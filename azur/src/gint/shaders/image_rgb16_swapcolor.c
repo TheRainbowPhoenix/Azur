@@ -14,8 +14,7 @@ void azrp_subimage_rgb16_swapcolor(int x, int y, image_t const *img,
     struct gint_image_box box = { x, y, w, h, left, top };
     struct gint_image_cmd cmd;
 
-    if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, azrp_width,
-            azrp_height)) {
+    if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, &azrp_window)) {
         cmd.effect += 8;
         cmd.color_1 = old_color;
         cmd.color_2 = new_color;
@@ -39,8 +38,7 @@ void azrp_subimage_rgb16_addbg(int x, int y, image_t const *img,
     struct gint_image_box box = { x, y, w, h, left, top };
     struct gint_image_cmd cmd;
 
-    if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, azrp_width,
-            azrp_height)) {
+    if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, &azrp_window)) {
         cmd.effect += 8;
         cmd.color_1 = image_alpha(img->format);
         cmd.color_2 = bg_color;

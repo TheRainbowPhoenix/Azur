@@ -39,8 +39,7 @@ void azrp_subimage_p8(int x, int y, image_t const *img,
     struct gint_image_box box = { x, y, w, h, left, top };
     struct gint_image_cmd cmd;
 
-    if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, azrp_width,
-            azrp_height)) {
+    if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, &azrp_window)) {
         cmd.loop = azrp_image_shader_p8_normal;
         azrp_queue_image(&box, img, &cmd);
     }
@@ -60,8 +59,7 @@ void azrp_subimage_p8_clearbg(int x, int y, image_t const *img,
     struct gint_image_box box = { x, y, w, h, left, top };
     struct gint_image_cmd cmd;
 
-    if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, azrp_width,
-            azrp_height)) {
+    if(gint_image_mkcmd(&box, img, eff, false, true, &cmd, &azrp_window)) {
         cmd.effect += 4;
         cmd.color_1 = bg_color;
         cmd.loop = gint_image_p8_clearbg;
