@@ -30,7 +30,7 @@ static int commands_count=0, commands_length=0;
    Rendering order is integer order. */
 static uint32_t commands_array[AZRP_MAX_COMMANDS];
 
-static GALIGNED(4) uint8_t commands_data[8192];
+static GALIGNED(4) uint8_t commands_data[16384];
 
 /* Array of shader programs and uniforms. */
 static azrp_shader_t *shaders[AZRP_MAX_SHADERS] = { NULL };
@@ -244,7 +244,7 @@ bool azrp_queue_command(void *command, size_t size, int fragment, int count)
 {
     if(commands_count + count > AZRP_MAX_COMMANDS)
         return false;
-    if(commands_length + size >= 8192)
+    if(commands_length + size >= sizeof command_data)
         return false;
 
     uint8_t *dst = commands_data + commands_length;
