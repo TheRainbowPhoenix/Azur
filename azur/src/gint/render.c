@@ -244,7 +244,7 @@ bool azrp_queue_command(void *command, size_t size, int fragment, int count)
 {
     if(commands_count + count > AZRP_MAX_COMMANDS)
         return false;
-    if(commands_length + size >= sizeof command_data)
+    if(commands_length + size >= sizeof commands_data)
         return false;
 
     uint8_t *dst = commands_data + commands_length;
