@@ -132,19 +132,19 @@ struct num8
 
     /* Comparisons with int */
 
-    inline constexpr bool operator==(int const &i) {
+    inline constexpr bool operator==(int const &i) const {
         return (v | i) == 0;
     }
-    inline constexpr bool operator<(int const &i) {
+    inline constexpr bool operator<(int const &i) const {
         return i >= 1;
     }
-    inline constexpr bool operator>=(int const &i) {
+    inline constexpr bool operator>=(int const &i) const {
         return i <= 0;
     }
-    inline constexpr bool operator<=(int const &i) {
+    inline constexpr bool operator<=(int const &i) const {
         return i + !v > 0;
     }
-    inline constexpr bool operator>(int const &i) {
+    inline constexpr bool operator>(int const &i) const {
         return i + !v <= 0;
     }
 
@@ -236,22 +236,22 @@ struct num16
 
     /* Comparisons with int */
 
-    inline constexpr bool operator==(int const &i) {
+    inline constexpr bool operator==(int const &i) const {
         return (int16_t)i == i && (i << 8) == v;
     }
-    inline constexpr bool operator<(int const &i) {
+    inline constexpr bool operator<(int const &i) const {
         return (v >> 8) < i;
     }
-    inline constexpr bool operator>=(int const &i) {
+    inline constexpr bool operator>=(int const &i) const {
         return (v >> 8) >= i;
     }
     /* Unfortunately the branchless version for this test is expressed in terms
        of `v`, not `i`, so it does not simplify well when `i` is known. In that
        case, writing eg. `x > num16(0)` is faster than `x > 0`. */
-    inline constexpr bool operator<=(int const &i) {
+    inline constexpr bool operator<=(int const &i) const {
         return (v >> 8) + ((v & 0xff) != 0) <= i;
     }
-    inline constexpr bool operator>(int const &i) {
+    inline constexpr bool operator>(int const &i) const {
         return (v >> 8) + ((v & 0xff) != 0) > i;
     }
 
@@ -348,19 +348,19 @@ struct num32
 
     /* Comparisons with int */
 
-    inline constexpr bool operator==(int const &i) {
+    inline constexpr bool operator==(int const &i) const {
         return (int16_t)i == i && (i << 16) == v;
     }
-    inline constexpr bool operator<(int const &i) {
+    inline constexpr bool operator<(int const &i) const {
         return (v >> 16) < i;
     }
-    inline constexpr bool operator>=(int const &i) {
+    inline constexpr bool operator>=(int const &i) const {
         return (v >> 16) >= i;
     }
-    inline constexpr bool operator<=(int const &i) {
+    inline constexpr bool operator<=(int const &i) const {
         return (v >> 16) + ((v & 0xffff) != 0) <= i;
     }
-    inline constexpr bool operator>(int const &i) {
+    inline constexpr bool operator>(int const &i) const {
         return (v >> 16) + ((v & 0xffff) != 0) > i;
     }
 
