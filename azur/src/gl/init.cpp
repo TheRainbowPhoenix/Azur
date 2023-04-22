@@ -134,7 +134,8 @@ SDL_Window *azur_sdl_window(void)
 // Main loop setup
 //---
 
-/* Time spent in the main loop (seconds) */
+/* Time spent in the main loop (seconds)
+   TODO: Handle ml_time (also in the gint backend) */
 static double ml_time = 0.0;
 
 /* In emscripten, callbacks are void/void, vsync is always ON, and the

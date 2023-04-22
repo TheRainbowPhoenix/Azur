@@ -35,6 +35,11 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
     DEPENDS gen_glsl.py ${ASSETS})
 endif()
 
+if(AZUR_TOOLKIT_GINT)
+  list(APPEND SOURCES
+    src/gint/init.cpp)
+endif()
+
 # gint rendering
 if(AZUR_GRAPHICS_GINT_CG)
   list(APPEND SOURCES
