@@ -117,8 +117,14 @@ struct num8
         v %= other.v;
         return *this;
     }
+    inline constexpr num8 ifloor() {
+        return 0;
+    }
     inline constexpr num8 floor() {
         return num8(0);
+    }
+    inline constexpr num8 iceil() {
+        return v != 0;
     }
     /* Warning: num8::ceil() always overflows! */
     inline constexpr num8 ceil() {
@@ -195,6 +201,9 @@ struct num16
     /* num16 x num16 -> num32 multiplication
        This is efficiently implemented with a muls.w instruction. */
     static constexpr num32 dmul(num16 const &x, num16 const &y);
+    /* num16 / num16 -> num16 division for positive numbers
+       This bypasses some sign tests, which saves a bit of time. */
+    static constexpr num16 div_positive(num16 const &x, num16 const &y);
 
     /* Basic arithmetic */
 
@@ -218,10 +227,16 @@ struct num16
         v %= other.v;
         return *this;
     }
+    inline constexpr int ifloor() {
+        return v >> 8;
+    }
     inline constexpr num16 floor() {
         num16 x;
         x.v = v & 0xff00;
         return x;
+    }
+    inline constexpr int iceil() {
+        return (v + 0xff) >> 8;
     }
     inline constexpr num16 ceil() {
         num16 x;
@@ -330,10 +345,16 @@ struct num32
         v %= other.v;
         return *this;
     }
+    inline constexpr int ifloor() {
+        return v >> 16;
+    }
     inline constexpr num32 floor() {
         num32 x;
         x.v = v & 0xffff0000;
         return x;
+    }
+    inline constexpr int iceil() {
+        return (v + 0xffff) >> 16;
     }
     inline constexpr num32 ceil() {
         num32 x;
@@ -345,6 +366,7 @@ struct num32
         x.v = v & 0xffff;
         return x;
     }
+    num32 sqrt() const;
 
     /* Comparisons with int */
 
@@ -447,10 +469,16 @@ struct num64
         v %= other.v;
         return *this;
     }
+    inline constexpr int ifloor() {
+        return v >> 32;
+    }
     inline constexpr num64 floor() {
         num64 x;
         x.v = v & 0xffffffff00000000ull;
         return x;
+    }
+    inline constexpr int iceil() {
+        return (v >> 32) + ((uint32_t)v != 0);
     }
     inline constexpr num64 ceil() {
         num64 x;
@@ -569,6 +597,26 @@ inline constexpr T operator-(T const &op) {
     return T(0) - op;
 }
 
+/* Internal minima, maxima and clamp */
+
+template<typename T> requires(is_num<T>)
+inline constexpr T min(T const &left, T const &right)
+{
+    return (left < right) ? left : right;
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr T max(T const &left, T const &right)
+{
+    return (left > right) ? left : right;
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr T clamp(T const &val, T const &lower, T const &upper)
+{
+    return max(lower, min(val, upper));
+}
+
 /* Other specific operations */
 
 inline constexpr num32 num16::dmul(num16 const &x, num16 const &y)
@@ -578,11 +626,26 @@ inline constexpr num32 num16::dmul(num16 const &x, num16 const &y)
     return n;
 }
 
+inline constexpr num16 num16::div_positive(num16 const &x, num16 const &y)
+{
+    num16 r;
+    r.v = ((uint32_t)(uint16_t)x.v << 8) / (uint16_t)y.v;
+    return r;
+}
+
 inline constexpr num64 num32::dmul(num32 const &x, num32 const &y)
 {
     num64 n;
     n.v = (int64_t)x.v * (int64_t)y.v;
     return n;
+}
+
+/* Floor modulo. We provide an optimized version for constants, which optimizes
+   away the main condition. */
+template<typename T> requires(is_num<T>)
+inline constexpr T modf(T const &x, T const &y) {
+    T r = x % y;
+    return (r.v && (r.v ^ y.v) < 0) ? r + y : r;
 }
 
 } /* namespace libnum */

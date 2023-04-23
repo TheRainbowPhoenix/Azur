@@ -306,7 +306,7 @@ class ExprParser:
         return decorate
 
     def binaryOpsRight(ctor, ops):
-        return binaryOpsRight(ctor, ops, rassoc=True)
+        return binaryOps(ctor, ops, rassoc=True)
 
     def unaryOps(ctor, ops, assoc=True):
         def decorate(f):

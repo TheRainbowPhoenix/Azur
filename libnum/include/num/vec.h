@@ -189,6 +189,10 @@ inline constexpr vec<T,N> operator*(T const &lhs, vec<T,N> rhs) {
         rhs[i] *= lhs;
     return rhs;
 }
+template<typename T, int N>
+inline constexpr vec<T,N> operator/(vec<T,N> lhs, T const &rhs) {
+    return lhs /= rhs;
+}
 
 /* Comparisons */
 

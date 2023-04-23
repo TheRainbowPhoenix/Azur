@@ -8,6 +8,7 @@
 include(CTest)
 
 add_library(num STATIC
+  src/num.cpp
   src/str.cpp)
 
 target_include_directories(num PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
