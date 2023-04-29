@@ -48,9 +48,8 @@
 
 #pragma once
 
-#include <cstdint>
+#include <num/primitives.h>
 #include <cstddef>
-
 #include <type_traits>
 #include <concepts>
 
@@ -219,8 +218,8 @@ struct num16
         v = (v * other.v) / 256;
         return *this;
     }
-    inline constexpr num16 &operator/=(num16 const &other) {
-        v = (v * 256) / other.v;
+    inline num16 &operator/=(num16 const &other) {
+        v = prim::div_i32_i16_i16(v * 256, other.v);
         return *this;
     }
     inline constexpr num16 &operator%=(num16 const &other) {

@@ -7,16 +7,31 @@
 
 include(CTest)
 
-add_library(num STATIC
+set(SOURCES
   src/num.cpp
   src/str.cpp)
 
-target_include_directories(num PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+if(DEFINED AZUR_ARCH_GENERIC)
+  set(LIBNUM_ARCH_GENERIC TRUE)
+elseif(DEFINED AZUR_ARCH_SH4ALDSP)
+  set(LIBNUM_ARCH_SH4ALDSP TRUE)
+  list(APPEND SOURCES
+    src/sh4aldsp/div_i32_i16_i16.s)
+endif()
+
+configure_file(include/num/config.h.in num/config.h)
+
+add_library(num STATIC ${SOURCES})
+target_include_directories(num PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${CMAKE_CURRENT_BINARY_DIR}")
 
 # Library file: libnum.a
 install(TARGETS num DESTINATION ${LIBDIR})
-# Headers: azur/*.h
+# Headers: num/config.h and num/*.h
 install(DIRECTORY include/ DESTINATION ${INCDIR})
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/num/config.h"
+        DESTINATION ${INCDIR}/num)
 
 #---
 # Unit tests

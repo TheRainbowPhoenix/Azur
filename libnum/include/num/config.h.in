@@ -1,0 +1,15 @@
+//---------------------------------------------------------------------------//
+//  ,"  /\  ",    Azur: A game engine for CASIO fx-CG and PC                 //
+// |  _/__\_  |   Designed by Lephe' and the Planète Casio community.        //
+//  "._`\/'_."    License: MIT <https://opensource.org/licenses/MIT>         //
+//---------------------------------------------------------------------------//
+// num.config: Compile-time configuration options
+
+#pragma once
+
+/* CPU architecture. */
+
+/* Generic/unknown CPU architecture; only C code is used. */
+#cmakedefine LIBNUM_ARCH_GENERIC
+/* SH4AL-DSP for the fx-CG. */
+#cmakedefine LIBNUM_ARCH_SH4ALDSP

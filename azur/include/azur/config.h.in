@@ -44,6 +44,14 @@
 #cmakedefine AZUR_GRAPHICS_GINT_CG
 
 
+/* CPU architecture (mostly useful for optimized SuperH stuff). */
+
+/* Generic/unknown CPU architecture; only C code is used. */
+#cmakedefine AZUR_ARCH_GENERIC
+/* SH4AL-DSP for the fx-CG. */
+#cmakedefine AZUR_ARCH_SH4ALDSP
+
+
 /* Input/output settings on terminal. */
 
 /* No terminal output entirely. */
