@@ -2,16 +2,18 @@
 
 uint8_t AZRP_SHADER_TRIANGLE = -1;
 
+static void configure(void)
+{
+    azrp_set_uniforms(AZRP_SHADER_TRIANGLE, (void *)azrp_width);
+}
+
 __attribute__((constructor))
 static void register_shader(void)
 {
     extern azrp_shader_t azrp_shader_triangle;
-    AZRP_SHADER_TRIANGLE = azrp_register_shader(azrp_shader_triangle);
-}
-
-void azrp_shader_triangle_configure(void)
-{
-    azrp_set_uniforms(AZRP_SHADER_TRIANGLE, (void *)azrp_width);
+    AZRP_SHADER_TRIANGLE = azrp_register_shader(azrp_shader_triangle,
+        configure);
+    configure();
 }
 
 static int min(int x, int y)

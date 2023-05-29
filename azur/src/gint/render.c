@@ -32,9 +32,19 @@ static uint32_t commands_array[AZRP_MAX_COMMANDS];
 
 static GALIGNED(4) uint8_t commands_data[16384];
 
-/* Array of shader programs and uniforms. */
-static azrp_shader_t *shaders[AZRP_MAX_SHADERS] = { NULL };
-static void *shader_uniforms[AZRP_MAX_SHADERS] = { NULL };
+/* Shader program information. */
+typedef struct {
+    /* Rendering function. */
+    azrp_shader_t *shader;
+    /* Uniform parameter. */
+    void *uniform;
+    /* Configuration function (in response to scale, base offset, etc). */
+    azrp_shader_configure_t *configure;
+
+} shader_info_t;
+
+/* Array of shader programs. */
+static shader_info_t shaders[AZRP_MAX_SHADERS] = { 0 };
 
 /* Next free index in the shader program array. */
 static uint16_t shaders_next = 0;
@@ -116,9 +126,12 @@ void azrp_render_fragments(void)
         while(cmd < next_frag_threshold && i < commands_count) {
             azrp_commands_total++;
             uint8_t *data = commands_data + (cmd & 0xffff);
+            shader_info_t const *info = &shaders[data[0]];
+
             prof_enter_norec(azrp_perf_shaders);
-            shaders[data[0]](shader_uniforms[data[0]], data, azrp_frag);
+            info->shader(info->uniform, data, azrp_frag);
             prof_leave_norec(azrp_perf_shaders);
+
             cmd = commands_array[++i];
         }
 
@@ -152,6 +165,14 @@ void azrp_update(void)
 // Configuration calls
 //---
 
+static void reconfigure_all_shaders(void)
+{
+    for(int i = 0; i < shaders_next; i++) {
+        if(shaders[i].configure)
+            shaders[i].configure();
+    }
+}
+
 // TODO: Use larger fragments in upscales x2 and x3
 
 static void update_frag_count(void)
@@ -184,6 +205,7 @@ void azrp_config_scale(int scale)
     azrp_scale = scale;
     update_size();
     update_frag_count();
+    reconfigure_all_shaders();
 }
 
 void azrp_config_frag_offset(int offset)
@@ -193,9 +215,13 @@ void azrp_config_frag_offset(int offset)
 
     azrp_frag_offset = offset;
     update_frag_count();
+    reconfigure_all_shaders();
 }
 
-__attribute__((constructor))
+/* Make sure this constructor runs before every shader's registration
+   constructor so we don't configure registered shaders before the settings are
+   initialized. */
+__attribute__((constructor(101)))
 static void default_settings(void)
 {
     azrp_config_scale(1);
@@ -219,14 +245,19 @@ void azrp_hook_set_prefrag(azrp_hook_prefrag_t *hook)
 // Custom shaders
 //---
 
-int azrp_register_shader(azrp_shader_t *program)
+int azrp_register_shader(azrp_shader_t *program,
+    azrp_shader_configure_t *configure)
 {
     int id = shaders_next;
-
     if(id >= AZRP_MAX_SHADERS)
         return -1;
 
-    shaders[shaders_next++] = program;
+    shader_info_t *info = &shaders[id];
+    info->shader = program;
+    info->uniform = NULL;
+    info->configure = configure;
+    shaders_next++;
+
     return id;
 }
 
@@ -234,10 +265,7 @@ void azrp_set_uniforms(int shader_id, void *uniforms)
 {
     if((unsigned int)shader_id >= AZRP_MAX_SHADERS)
         return;
-    if(shaders[shader_id] == NULL)
-        return;
-
-    shader_uniforms[shader_id] = uniforms;
+    shaders[shader_id].uniform = uniforms;
 }
 
 bool azrp_queue_command(void *command, size_t size, int fragment, int count)

@@ -2,17 +2,18 @@
 
 uint8_t AZRP_SHADER_CLEAR = -1;
 
+static void configure(void)
+{
+    int longs_in_fragment = (azrp_width * azrp_frag_height / 2);
+    azrp_set_uniforms(AZRP_SHADER_CLEAR, (void *)longs_in_fragment);
+}
+
 __attribute__((constructor))
 static void register_shader(void)
 {
     extern azrp_shader_t azrp_shader_clear;
-    AZRP_SHADER_CLEAR = azrp_register_shader(azrp_shader_clear);
-}
-
-void azrp_shader_clear_configure(void)
-{
-    int longs_in_fragment = (azrp_width * azrp_frag_height / 2);
-    azrp_set_uniforms(AZRP_SHADER_CLEAR, (void *)longs_in_fragment);
+    AZRP_SHADER_CLEAR = azrp_register_shader(azrp_shader_clear, configure);
+    configure();
 }
 
 //---

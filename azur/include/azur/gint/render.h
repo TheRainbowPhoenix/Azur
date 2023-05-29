@@ -44,6 +44,10 @@ AZUR_BEGIN_DECLS
    * [fragment] is a pointer to azrp_frag. */
 typedef void azrp_shader_t(void *uniforms, void *command, void *fragment);
 
+/* azrp_shader_configure_t: Type of shader configuration functions
+   This function is mainly called when fragment settings change. */
+typedef void azrp_shader_configure_t(void);
+
 /* Video memory fragment used as rendering target (in XRAM). */
 extern uint16_t *azrp_frag;
 
@@ -207,15 +211,6 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color);
 /* See below for more detailed image functions. Dynamic effects are provided
    with the same naming convention as gint. */
 
-/* Functions to update uniforms for these shaders. You should call them when:
-   * AZRP_SHADER_CLEAR: Changing super-scaling settings.
-   * AZRP_SHADER_IMAGE_*: Changing super-scaling or or fragment offsets. */
-void azrp_shader_clear_configure(void);
-void azrp_shader_image_rgb16_configure(void);
-void azrp_shader_image_p8_configure(void);
-void azrp_shader_image_p4_configure(void);
-void azrp_shader_triangle_configure(void);
-
 //---
 // Performance indicators
 //
@@ -250,13 +245,20 @@ void azrp_perf_clear(void);
 
 /* azrp_register_shader(): Register a new command type and its shader program
 
-   This function adds the specified shader program to the program array, and
-   returns the corresponding command type. Adding new shaders is useful for
-   specialized rendering options (eg. tiles with fixed size) or new graphical
-   effects.
+   This function registers a new shader program to the program array, along
+   with its configuration function. The configuration function is called
+   immediately upon registration.
 
-   If the maximum number shaders is exceeded, returns -1. */
-int azrp_register_shader(azrp_shader_t *program);
+   There is often a choice between creating a new shader and generalizing an
+   existing one. The impact is small; the difference only really matters if
+   there is a lot of commands, but in that case command management becomes a
+   stronger bottleneck. The choice should be made for optimal code structure
+   and reuse.
+
+   Returns the shader ID to be set in commands, or -1 if the maximum number of
+   shaders has been exceeded. */
+int azrp_register_shader(azrp_shader_t *program,
+    azrp_shader_configure_t *configure);
 
 /* azrp_set_uniforms(): Set a shader's uniforms pointer
 

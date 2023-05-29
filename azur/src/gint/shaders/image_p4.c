@@ -12,15 +12,16 @@ static void shader_p4(void *uniforms, void *command, void *fragment)
     cmd->output = fragment + cmd->x * 2;
 }
 
+static void configure(void)
+{
+    azrp_set_uniforms(AZRP_SHADER_IMAGE_P4, (void *)azrp_width);
+}
+
 __attribute__((constructor))
 static void register_shader(void)
 {
-    AZRP_SHADER_IMAGE_P4 = azrp_register_shader(shader_p4);
-}
-
-void azrp_shader_image_p4_configure(void)
-{
-    azrp_set_uniforms(AZRP_SHADER_IMAGE_P4, (void *)azrp_width);
+    AZRP_SHADER_IMAGE_P4 = azrp_register_shader(shader_p4, configure);
+    configure();
 }
 
 void azrp_image_p4(int x, int y, image_t const *img, int eff)
