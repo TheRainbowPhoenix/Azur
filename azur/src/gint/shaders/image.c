@@ -1,6 +1,10 @@
 #include <azur/gint/render.h>
 #include <gint/defs/util.h>
 
+extern uint8_t AZRP_SHADER_IMAGE_RGB16;
+extern uint8_t AZRP_SHADER_IMAGE_P8;
+extern uint8_t AZRP_SHADER_IMAGE_P4;
+
 void azrp_queue_image(struct gint_image_box *box, image_t const *img,
     struct gint_image_cmd *cmd)
 {

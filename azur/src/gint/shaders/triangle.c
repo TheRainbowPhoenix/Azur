@@ -29,7 +29,7 @@ struct command {
    uint8_t shader_id;
    /* Local y coordinate of the first line in the fragment */
    uint8_t y;
-   /* Numebr of lines to render total, including this fragment */
+   /* Number of lines to render total, including this fragment */
    uint8_t height_total;
    /* Number of lines to render on the current fragment */
    uint8_t height_frag;
@@ -43,7 +43,7 @@ struct command {
    int u0, v0, w0;
    /* Variation of each coordinate for a movement in x */
    int du_x, dv_x, dw_x;
-   /* Variation of each coordinate for a movement in y while canceling rows's
+   /* Variation of each coordinate for a movement in y while canceling rows'
       movements in x */
    int du_row, dv_row, dw_row;
 };
@@ -82,6 +82,16 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color)
     cmd.x_min = min_x;
     cmd.x_max = max_x;
     cmd.color = color;
+
+    /* Swap points 1 and 2 if the order of points is not left-handed */
+    if(edge_start(x1, y1, x2, y2, x3, y3) < 0) {
+        int xt = x1;
+        x1 = x2;
+        x2 = xt;
+        int yt = y1;
+        y1 = y2;
+        y2 = yt;
+    }
 
     /* Vector products for barycentric coordinates */
     cmd.u0 = edge_start(x2, y2, x3, y3, min_x, min_y);

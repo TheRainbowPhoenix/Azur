@@ -184,25 +184,24 @@ void azrp_hook_set_prefrag(azrp_hook_prefrag_t *);
 
 //---
 // Standard shaders
+//
+// None of the functions below acturally draw to the display; they all queue
+// commands that get executed when azrp_render_fragment() or azrp_update() is
+// called. They all return rather quickly and the time they take executing is
+// counted towards command generation, not rendering.
 //---
 
-/* Clears the entire output with a single color */
-extern uint8_t AZRP_SHADER_CLEAR;
-/* Renders gint images with various dynamic effects */
-extern uint8_t AZRP_SHADER_IMAGE_RGB16;
-extern uint8_t AZRP_SHADER_IMAGE_P8;
-extern uint8_t AZRP_SHADER_IMAGE_P4;
-
-/* azrp_clear(): Clear output [ARZP_SHADER_CLEAR] */
+/* azrp_clear(): Clear output with a flat color */
 void azrp_clear(uint16_t color);
 
-/* azrp_image(): Queue image command [AZRP_SHADER_IMAGE_*] */
+/* azrp_image(): Render a full image, like dimage(). */
 void azrp_image(int x, int y, bopti_image_t const *image);
 
-/* azrp_subimage(): Queue image subsection command [AZRP_SHADER_IMAGE_*] */
+/* azrp_subimage(): Render a section of an image, like dsubimage(). */
 void azrp_subimage(int x, int y, bopti_image_t const *image,
    int left, int top, int width, int height, int flags);
 
+/* azrp_triangle(): Render a flat triangle. Points can be in any order. */
 void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color);
 
 /* See below for more detailed image functions. Dynamic effects are provided
