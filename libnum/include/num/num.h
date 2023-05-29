@@ -396,24 +396,6 @@ struct num32
     int strToBuffer(char *str);
 };
 
-/* Arithmetic with integers */
-
-inline constexpr num32 operator*(int n, num32 x) {
-    num32 r;
-    r.v = n * x.v;
-    return r;
-}
-inline constexpr num32 operator*(num32 x, int n) {
-    num32 r;
-    r.v = n * x.v;
-    return r;
-}
-inline constexpr num32 operator/(num32 x, int n) {
-    num32 r;
-    r.v = x.v / n;
-    return r;
-}
-
 /* num64: Signed 32:32 fixed-point type
    * Size:        64 bits (8 bytes)
    * Range:       -2147483648.0 ... 2147483647.999999998
@@ -614,6 +596,29 @@ template<typename T> requires(is_num<T>)
 inline constexpr T clamp(T const &val, T const &lower, T const &upper)
 {
     return max(lower, min(val, upper));
+}
+
+/* Arithmetic with integers */
+
+template<typename T> requires(is_num<T>)
+inline constexpr T operator*(int n, T const &x) {
+    T r;
+    r.v = n * x.v;
+    return r;
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr T operator*(T const &x, int n) {
+    T r;
+    r.v = n * x.v;
+    return r;
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr T operator/(T const &x, int n) {
+    T r;
+    r.v = x.v / n;
+    return r;
 }
 
 /* Other specific operations */
