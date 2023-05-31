@@ -227,6 +227,24 @@ static void default_settings(void)
     azrp_config_scale(1);
 }
 
+void azrp_config_get_line(int y, int *fragment, int *offset)
+{
+    y += azrp_frag_offset;
+
+    *fragment = y >> 4;
+    *offset = y & 15;
+}
+
+void azrp_config_get_lines(int y, int height, int *first_fragment,
+    int *first_offset, int *fragment_count)
+{
+    y += azrp_frag_offset;
+
+    *first_fragment = (y >> 4);
+    *first_offset = (y & 15);
+    *fragment_count = ((y + height - 1) >> 4) - *first_fragment + 1;
+}
+
 //---
 // Hooks
 //---

@@ -10,7 +10,7 @@
 
    In the simple case where there is no color effect and no HFLIP, the task of
    rendering a 16-bit opaque image boils down to a 2-dimensional memcpy. This
-   task can be optimized by moving longwords if the source and destination and
+   task can be optimized by moving longwords if the source and destination are
    co-4-aligned, with four variations depending on the width and initial
    position, identified by the following parameters:
 

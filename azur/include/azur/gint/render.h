@@ -173,6 +173,21 @@ void azrp_config_scale(int scale);
    @offset  Fragment offset along the y-axis (0 ... height of fragment-1). */
 void azrp_config_frag_offset(int offset);
 
+/* azrp_config_get_line(): Split a line number into fragment/offset
+
+   Sets *fragment to the first fragment that covers line y and *offset to the
+   line number within that fragment. */
+void azrp_config_get_line(int y, int *fragment, int *offset);
+
+/* azrp_config_get_lines(): Split a line interval into fragments and offset
+
+   Splits the interval [y; y+height) into fragment/offset pairs.
+   - Sets *first_fragment to the fragment that covers line y;
+   - Sets *first_offset to the line number within that fragment;
+   - Sets *fragment_count to the number of fragments the interval will cover. */
+void azrp_config_get_lines(int y, int height, int *first_fragment,
+    int *first_offset, int *fragment_count);
+
 //---
 // Hooks
 //---
@@ -205,11 +220,24 @@ void azrp_image(int x, int y, bopti_image_t const *image);
 void azrp_subimage(int x, int y, bopti_image_t const *image,
    int left, int top, int width, int height, int flags);
 
+/* See below for more detailed image functions. Dynamic effects are provided
+   with the same naming convention as gint. */
+
 /* azrp_triangle(): Render a flat triangle. Points can be in any order. */
 void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color);
 
-/* See below for more detailed image functions. Dynamic effects are provided
-   with the same naming convention as gint. */
+/* azrp_rect(): Render a rectangle with a flat color or color transform. */
+void azrp_rect(int x1, int y1, int width, int height, int color_or_effect);
+
+/* Effects for azrp_rect(). */
+enum {
+    /* Invert colors in gamma space. */
+    AZRP_RECT_INVERT = -1,
+    /* Darken by halving all components in gamma space. */
+    AZRP_RECT_DARKEN = -2,
+    /* Whiten by halving the distance to white in gamma space. */
+    AZRP_RECT_WHITEN = -3,
+};
 
 //---
 // Performance indicators
@@ -274,6 +302,7 @@ void azrp_set_uniforms(int shader_id, void *uniforms);
    data can be updated between fragments by the shader program. Returns true on
    success, false if the maximum amount of commands or command memory is
    exceeded. */
+// TODO: azrp_queue_command: give access to command buffer in-place
 bool azrp_queue_command(void *command, size_t size, int fragment, int count);
 
 /* azrp_queue_image(): Split and queue a gint image command

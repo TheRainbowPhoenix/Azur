@@ -69,12 +69,9 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color)
         return;
     }
 
-    /* TODO: Have a proper way to do optimized-division by azrp_frag_height
-       TODO: Also account for first-fragment offset */
-    int frag_first = min_y >> 4;
-    int frag_last  = max_y >> 4;
-    int frag_count = frag_last - frag_first + 1;
-    int first_offset = min_y & 15;
+    int frag_first, first_offset, frag_count;
+    azrp_config_get_lines(min_y, max_y - min_y + 1,
+        &frag_first, &first_offset, &frag_count);
 
     struct command cmd;
     cmd.shader_id = AZRP_SHADER_TRIANGLE;

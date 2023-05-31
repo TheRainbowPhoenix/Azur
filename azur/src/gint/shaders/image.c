@@ -17,12 +17,10 @@ void azrp_queue_image(struct gint_image_box *box, image_t const *img,
     else
         cmd->shader_id = AZRP_SHADER_IMAGE_P4;
 
-    /* This divides by azrp_frag_height */
-    /* TODO: Have a proper way to do optimized-division by azrp_frag_height */
-    int fragment_id = (azrp_scale == 1) ? (box->y >> 4) : (box->y >> 4);
+    int fragment_id, first_y;
+    azrp_config_get_line(box->y, &fragment_id, &first_y);
 
     /* These settings only apply to the first fragment */
-    int first_y = (box->y + azrp_frag_offset) & (azrp_frag_height - 1);
     cmd->lines = min(box->h, azrp_frag_height - first_y);
     cmd->output = (void *)azrp_frag + (azrp_width * first_y + cmd->x) * 2;
 

@@ -72,7 +72,10 @@ if(AZUR_GRAPHICS_GINT_CG)
     src/gint/shaders/image_p4_dye.c
     # Triangle shader
     src/gint/shaders/triangle.c
-    src/gint/shaders/triangle.S)
+    src/gint/shaders/triangle.S
+    # Rectangle shader
+    src/gint/shaders/rect.c
+    src/gint/shaders/rect.S)
 endif()
 
 add_library(azur STATIC ${SOURCES})
