@@ -12,9 +12,9 @@ AZUR_BEGIN_DECLS
    success, non-zero on failure. Resources allocated by azur_init() are
    automatically destroyed by a destructor.
 
-   On GINT_CG, the window size is fixed to 396x224 and ignored at this stage.
-   The rendering system can still be configured for super-resolution with
-   azrp_config_scale() from <azur/gint/render.h>. */
+   On GINT_CG, the window size can be 396x224, 198x112 or 132x75 and this
+   configures the rendering engine for super-resolution. Returns non-zero if
+   the size is not one of these. */
 int azur_init(char const *title, int window_width, int window_height);
 
 /* azur_main_loop(): Run the update/render loop.

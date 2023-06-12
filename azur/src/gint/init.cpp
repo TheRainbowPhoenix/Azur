@@ -3,11 +3,19 @@
 #include <gint/timer.h>
 #include <gint/cpu.h>
 
-int azur_init(char const *title, int window_width, int window_height)
+int azur_init(char const *title, int width, int height)
 {
     (void)title;
-    (void)window_width;
-    (void)window_height;
+
+    if(width == 396 && height == 224)
+        azrp_config_scale(1);
+    else if(width == 198 && height == 112)
+        azrp_config_scale(2);
+    else if(width == 132 && height == 75)
+        azrp_config_scale(3);
+    else
+        return -1;
+
     return 0;
 }
 
