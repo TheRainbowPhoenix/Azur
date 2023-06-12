@@ -1,6 +1,6 @@
 #include <azur/gint/render.h>
 
-uint AZRP_SHADER_RECT = -1;
+uint8_t AZRP_SHADER_RECT = -1;
 
 static void configure(void)
 {

@@ -75,7 +75,10 @@ if(AZUR_GRAPHICS_GINT_CG)
     src/gint/shaders/triangle.S
     # Rectangle shader
     src/gint/shaders/rect.c
-    src/gint/shaders/rect.S)
+    src/gint/shaders/rect.S
+    # Text shader
+    src/gint/shaders/text.c
+    src/gint/shaders/text.S)
 endif()
 
 add_library(azur STATIC ${SOURCES})

@@ -239,6 +239,14 @@ enum {
     AZRP_RECT_WHITEN = -3,
 };
 
+/* azrp_text(): Render a string of text, like dtext(). */
+void azrp_text(int x, int y, font_t const *f, char const *str, int fg,
+    int size);
+
+/* azrp_text_opt(): Render text with options similar to dtext_opt(). */
+void azrp_text_opt(int x, int y, font_t const *font, int fg, int halign,
+    int valign, char const *str, int size);
+
 //---
 // Performance indicators
 //
