@@ -240,12 +240,18 @@ enum {
 };
 
 /* azrp_text(): Render a string of text, like dtext(). */
-void azrp_text(int x, int y, font_t const *f, char const *str, int fg,
-    int size);
+void azrp_text(int x, int y, int fg, char const *str);
 
 /* azrp_text_opt(): Render text with options similar to dtext_opt(). */
 void azrp_text_opt(int x, int y, font_t const *font, int fg, int halign,
     int valign, char const *str, int size);
+
+/* azrp_print(): Like azrp_text() but with printf-formatting. */
+void azrp_print(int x, int y, int fg, char const *fmt, ...);
+
+/* azrp_print_opt(): Like azrp_text_opt() but with printf-formatting. */
+void azrp_print_opt(int x, int y, font_t const *font, int fg, int halign,
+    int valign, char const *fmt, ...);
 
 //---
 // Performance indicators

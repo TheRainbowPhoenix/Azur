@@ -2,6 +2,7 @@
 #include <gint/defs/util.h>
 #include <gint/display.h>
 #include <string.h>
+#include <stdio.h>
 
 uint8_t AZRP_SHADER_TEXT = -1;
 
@@ -91,10 +92,20 @@ void azrp_shader_text(void *uniforms0, void *cmd0, void *frag0)
     } while(glyph_count);
 }
 
-void azrp_text(int x, int y, font_t const *f, char const *str0,
-    int fg, int size)
+void azrp_text_opt(int x, int y, font_t const *f, int fg, int halign,
+    int valign, char const *str0, int size)
 {
     prof_enter(azrp_perf_cmdgen);
+
+    if(halign != DTEXT_LEFT || valign != DTEXT_TOP) {
+        int w, h;
+        dnsize(str0, size, f, &w, &h);
+
+        if(halign == DTEXT_RIGHT)  x -= w - 1;
+        if(halign == DTEXT_CENTER) x -= (w >> 1);
+        if(valign == DTEXT_BOTTOM) y -= h - 1;
+        if(valign == DTEXT_MIDDLE) y -= (h >> 1);
+    }
 
     /* Clipping */
     if(x >= azrp_window.right || y >= azrp_window.bottom ||
@@ -178,18 +189,35 @@ void azrp_text(int x, int y, font_t const *f, char const *str0,
     prof_leave(azrp_perf_cmdgen);
 }
 
-void azrp_text_opt(int x, int y, font_t const *font, int fg, int halign,
-    int valign, char const *str, int size)
+void azrp_text(int x, int y, int fg, char const *str)
 {
-    if(halign != DTEXT_LEFT || valign != DTEXT_TOP) {
-        int w, h;
-        dnsize(str, size, font, &w, &h);
+    font_t const *font = dfont(NULL);
+    dfont(font);
 
-        if(halign == DTEXT_RIGHT)  x -= w - 1;
-        if(halign == DTEXT_CENTER) x -= (w >> 1);
-        if(valign == DTEXT_BOTTOM) y -= h - 1;
-        if(valign == DTEXT_MIDDLE) y -= (h >> 1);
-    }
+    azrp_text_opt(x, y, font, fg, DTEXT_LEFT, DTEXT_TOP, str, -1);
+}
 
-    azrp_text(x, y, font, str, fg, size);
+void azrp_print(int x, int y, int fg, char const *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    char str[128];
+    vsnprintf(str, sizeof str, fmt, args);
+    va_end(args);
+
+    azrp_text(x, y, fg, str);
+}
+
+void azrp_print_opt(int x, int y, font_t const *font, int fg, int halign,
+    int valign, char const *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    char str[128];
+    vsnprintf(str, sizeof str, fmt, args);
+    va_end(args);
+
+    azrp_text_opt(x, y, font, fg, halign, valign, str, -1);
 }
