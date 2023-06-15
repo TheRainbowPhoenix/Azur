@@ -25,7 +25,12 @@ void azrp_queue_image(struct gint_image_box *box, image_t const *img,
     cmd->output = (void *)azrp_frag + (azrp_width * first_y + cmd->x) * 2;
 
     int n = 1 + (box->h - cmd->lines + azrp_frag_height-1) / azrp_frag_height;
-    azrp_queue_command(cmd, sizeof *cmd, fragment_id, n);
+
+    // TODO: Build image command in-place?
+    struct gint_image_cmd *cmd_inplace =
+        azrp_new_command(sizeof *cmd_inplace, fragment_id, n);
+    if(cmd_inplace)
+        *cmd_inplace = *cmd;
 }
 
 void azrp_subimage(int x, int y, image_t const *img,

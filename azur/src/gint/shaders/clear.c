@@ -29,10 +29,13 @@ void azrp_clear(uint16_t color)
 {
     prof_enter(azrp_perf_cmdgen);
 
-    struct command cmd;
-    cmd.shader_id = AZRP_SHADER_CLEAR;
-    cmd.color = color;
+    struct command *cmd = azrp_new_command(sizeof *cmd, 0, azrp_frag_count);
+    if(!cmd) {
+        prof_leave(azrp_perf_cmdgen);
+        return;
+    }
 
-    azrp_queue_command(&cmd, sizeof cmd, 0, azrp_frag_count);
+    cmd->shader_id = AZRP_SHADER_CLEAR;
+    cmd->color = color;
     prof_leave(azrp_perf_cmdgen);
 }

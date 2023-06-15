@@ -303,15 +303,71 @@ int azrp_register_shader(azrp_shader_t *program,
    or even points to valid memory. */
 void azrp_set_uniforms(int shader_id, void *uniforms);
 
-/* azrp_queue_command(): Add a new command to be rendered next frame
+/* azrp_new_command(): Create a new command to be rendered next frame
 
-   The command must be a structure starting with an 8-bit shader ID. The
-   command is added for all fragments in range [fragment..fragment+count); its
-   data can be updated between fragments by the shader program. Returns true on
-   success, false if the maximum amount of commands or command memory is
-   exceeded. */
-// TODO: azrp_queue_command: give access to command buffer in-place
-bool azrp_queue_command(void *command, size_t size, int fragment, int count);
+   This function reserves `size` bytes of space in the command buffer, and
+   returns the address of the region so the caller can fill in a command. The
+   command will run for fragments in the interval [fragment .. fragment+count).
+
+   The command's data must start with an 8-bit shader ID; anything else is up
+   to the shader. In particular the command's data *can* be updated by the
+   shader function to reflect progress in the rendering between each fragment.
+
+   Returns NULL if the maximum number of commands is reached or the command
+   buffer is exhausted. */
+void *azrp_new_command(size_t size, int fragment, int count);
+
+/* azrp_alloc_command(): Allocate a command in the command buffer
+
+   This function, when used together with with azrp_finalize_command() and
+   azrp_instantiate_command(), provides finer control over the command
+   generation process compared to the simple azrp_new_command().
+
+   azrp's command buffer is a bump allocator. Each new command is allocated
+   directly after the previous one. With azrp_new_command(), the full size of
+   the command must be known when allocating. By contrast, azrp_alloc_command()
+   allows variable-sized commands to be generated: the caller can figure out
+   the final size as it fills in the command, and later commits it by calling
+   azrp_finalize_command() which advances the bump allocator.
+
+   No shader commands can be generated while an allocation is ongoing.
+   azrp_finalize_command() must be called to finish allocating before
+   azrp_new_command() or azrp_alloc_command() can be called again.
+
+   This function allocates memory for a command of size at least `size`. The
+   total amount of memory available beyond `size` is recorded in `*extra`.
+   `size` usually represents the fixed size in commands (eg. the natural size
+   of structures with flexible array members); it is rarely 0 as a 1-byte
+   shader ID is always required.
+
+   `count` is the number of fragments that the caller knows will be covered by
+   the command. If less than `count` entries are available in the internal
+   queue where these are held, azrp_alloc_command() will return NULL
+   immediately. This avoids generating a command that could not be instantiated
+   anyway. If the final set of affected fragments is unknown, use 0.
+
+   Returns a pointer to the buffer where the command should be filled. If
+   `size` or `count` is too large, returns NULL. In any case, `*extra` is set
+   to the command buffer space remaining after reserving `size` bytes. */
+void *azrp_alloc_command(size_t size, int *extra, int count);
+
+/* azrp_finalize_command(): Finalize an allocation by azrp_alloc_command()
+
+   This function finishes an allocation started by azrp_alloc_command() and
+   advances the bump allocator. `total_size` is the size of the command, ie.
+   the sum of the `size` parameter to azrp_alloc_command() and the amount of
+   extra data used (less that azrp_alloc_command()'s, `*extra`). */
+void azrp_finalize_command(void const *command, int total_size);
+
+/* azrp_instantiate_command(): Queue a command for a range of fragments
+
+   This function fills in the command queue with instructions to render the
+   given command on fragments of the range [fragment .. fragment+count). Unlike
+   with azrp_new_command(), this function can be called multiple times for the
+   same command, if disjoint intervals are ever needed.
+
+   Returns true on success, false if the queue is out of space. */
+bool azrp_instantiate_command(void const *command, int fragment, int count);
 
 /* azrp_queue_image(): Split and queue a gint image command
 

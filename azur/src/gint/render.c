@@ -145,6 +145,7 @@ void azrp_render_fragments(void)
             azrp_r61524_fragment_x1(azrp_frag, 396 * azrp_frag_height);
         else if(azrp_scale == 2)
             azrp_r61524_fragment_x2(azrp_frag, azrp_width, azrp_frag_height);
+        // TODO: r61524 x3 output function
         prof_leave_norec(azrp_perf_r61524);
 
         if(++frag >= azrp_frag_count) break;
@@ -286,27 +287,53 @@ void azrp_set_uniforms(int shader_id, void *uniforms)
     shaders[shader_id].uniform = uniforms;
 }
 
-bool azrp_queue_command(void *command, size_t size, int fragment, int count)
+void *azrp_alloc_command(size_t size, int *extra, int count)
+{
+    *extra = sizeof commands_data - commands_length - size;
+
+    if(commands_count + count > AZRP_MAX_COMMANDS || *extra < 0)
+        return NULL;
+
+    return commands_data + commands_length;
+}
+
+void azrp_finalize_command(void const *command, int total_size)
+{
+    (void)command;
+    total_size = (total_size | 3) + 1;
+
+    if(commands_length + total_size > (int)sizeof commands_data)
+        return;
+
+    commands_length += total_size;
+}
+
+bool azrp_instantiate_command(void const *command, int fragment, int count)
 {
     if(commands_count + count > AZRP_MAX_COMMANDS)
         return false;
-    if(commands_length + size >= sizeof commands_data)
-        return false;
 
-    uint8_t *dst = commands_data + commands_length;
-    uint8_t *src = command;
-
-    for(size_t i = 0; i < size; i++)
-        dst[i] = src[i];
+    int offset = (uint8_t *)command - commands_data;
 
     do {
-        commands_array[commands_count++] = (fragment << 16) | commands_length;
+        commands_array[commands_count++] = (fragment << 16) | offset;
         fragment++;
     }
     while(--count > 0);
 
-    commands_length += size;
     return true;
+}
+
+void *azrp_new_command(size_t size, int fragment, int count)
+{
+    int extra;
+    void *cmd = azrp_alloc_command(size, &extra, count);
+    if(!cmd)
+        return NULL;
+
+    azrp_finalize_command(cmd, size);
+    azrp_instantiate_command(cmd, fragment, count);
+    return cmd;
 }
 
 //---

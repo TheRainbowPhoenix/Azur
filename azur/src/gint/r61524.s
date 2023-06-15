@@ -31,6 +31,9 @@ _azrp_r61524_fragment_x2:
 	ldrc	r5
 	nop
 
+	/* TODO: Possible optimization by swap.w + xtrct (3 LS -> 2 EX + 2 LS)
+	   with pipelining. Might be display-bottlenecked. But this might save
+	   time in the parallel USB/R61524 method regardless? */
 1:	mov.w	@r4+, r0
 	nop
 	mov.w	r0, @r2

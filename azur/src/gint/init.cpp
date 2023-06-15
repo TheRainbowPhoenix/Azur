@@ -1,5 +1,6 @@
 #include <azur/azur.h>
 #include <azur/log.h>
+#include <azur/gint/render.h>
 #include <gint/timer.h>
 #include <gint/cpu.h>
 

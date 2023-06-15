@@ -73,14 +73,20 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color)
     azrp_config_get_lines(min_y, max_y - min_y + 1,
         &frag_first, &first_offset, &frag_count);
 
-    struct command cmd;
-    cmd.shader_id = AZRP_SHADER_TRIANGLE;
-    cmd.y = first_offset;
-    cmd.height_total = max_y - min_y + 1;
-    cmd.height_frag = min(cmd.height_total, azrp_frag_height - cmd.y);
-    cmd.x_min = min_x;
-    cmd.x_max = max_x;
-    cmd.color = color;
+    struct command *cmd =
+        azrp_new_command(sizeof *cmd, frag_first, frag_count);
+    if(!cmd) {
+        prof_leave(azrp_perf_cmdgen);
+        return;
+    }
+
+    cmd->shader_id = AZRP_SHADER_TRIANGLE;
+    cmd->y = first_offset;
+    cmd->height_total = max_y - min_y + 1;
+    cmd->height_frag = min(cmd->height_total, azrp_frag_height - cmd->y);
+    cmd->x_min = min_x;
+    cmd->x_max = max_x;
+    cmd->color = color;
 
     /* Swap points 1 and 2 if the order of points is not left-handed */
     if(edge_start(x1, y1, x2, y2, x3, y3) < 0) {
@@ -93,21 +99,20 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color)
     }
 
     /* Vector products for barycentric coordinates */
-    cmd.u0 = edge_start(x2, y2, x3, y3, min_x, min_y);
-    cmd.du_x = y3 - y2;
+    cmd->u0 = edge_start(x2, y2, x3, y3, min_x, min_y);
+    cmd->du_x = y3 - y2;
     int du_y = x2 - x3;
-    cmd.v0 = edge_start(x3, y3, x1, y1, min_x, min_y);
-    cmd.dv_x = y1 - y3;
+    cmd->v0 = edge_start(x3, y3, x1, y1, min_x, min_y);
+    cmd->dv_x = y1 - y3;
     int dv_y = x3 - x1;
-    cmd.w0 = edge_start(x1, y1, x2, y2, min_x, min_y);
-    cmd.dw_x = y2 - y1;
+    cmd->w0 = edge_start(x1, y1, x2, y2, min_x, min_y);
+    cmd->dw_x = y2 - y1;
     int dw_y = x1 - x2;
 
     int columns = max_x - min_x + 1;
-    cmd.du_row = du_y - columns * cmd.du_x;
-    cmd.dv_row = dv_y - columns * cmd.dv_x;
-    cmd.dw_row = dw_y - columns * cmd.dw_x;
+    cmd->du_row = du_y - columns * cmd->du_x;
+    cmd->dv_row = dv_y - columns * cmd->dv_x;
+    cmd->dw_row = dw_y - columns * cmd->dw_x;
 
-    azrp_queue_command(&cmd, sizeof cmd, frag_first, frag_count);
     prof_leave(azrp_perf_cmdgen);
 }

@@ -133,18 +133,23 @@ void azrp_text(int x, int y, font_t const *f, char const *str,
     azrp_config_get_lines(y, f->data_height,
         &frag_first, &first_offset, &frag_count);
 
-    struct command cmd;
-    cmd.shader_id = AZRP_SHADER_TEXT;
-    cmd.x = x;
-    cmd.y = first_offset;
-    cmd.height = height;
-    cmd.top = top;
-    cmd.font = f;
-    cmd.str = str;
-    cmd.fg = fg;
-    cmd.size = size;
+    struct command *cmd =
+        azrp_new_command(sizeof *cmd, frag_first, frag_count);
+    if(!cmd) {
+        prof_leave(azrp_perf_cmdgen);
+        return;
+    }
 
-    azrp_queue_command(&cmd, sizeof cmd, frag_first, frag_count);
+    cmd->shader_id = AZRP_SHADER_TEXT;
+    cmd->x = x;
+    cmd->y = first_offset;
+    cmd->height = height;
+    cmd->top = top;
+    cmd->font = f;
+    cmd->str = str;
+    cmd->fg = fg;
+    cmd->size = size;
+
     prof_leave(azrp_perf_cmdgen);
 }
 

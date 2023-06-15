@@ -72,20 +72,25 @@ void azrp_rect(int x1, int y1, int width0, int height0, int color_or_effect)
     azrp_config_get_lines(y1, y2 - y1,
         &frag_first, &first_offset, &frag_count);
 
-    struct command cmd;
-    cmd.shader_id = AZRP_SHADER_RECT;
-    cmd.y = first_offset;
-    cmd.height_total = y2 - y1;
-    cmd.height_frag = azrp_frag_height - first_offset;
-    if(cmd.height_total < cmd.height_frag)
-        cmd.height_frag = cmd.height_total;
-    cmd.xl = (x1 >> 1);
-    cmd.wl = ((x2 - 1) >> 1) - cmd.xl + 1;
-    cmd.edge_1 = (x1 & 1) ? 0 : -2;
-    cmd.edge_2 = 4 * cmd.wl + ((x2 & 1) ? -2 : 0);
-    cmd.loop = loops[color_or_effect >= 0 ? 0 : -color_or_effect];
-    cmd.color = color_or_effect;
+    struct command *cmd =
+        azrp_new_command(sizeof *cmd, frag_first, frag_count);
+    if(!cmd) {
+        prof_leave(azrp_perf_cmdgen);
+        return;
+    }
 
-    azrp_queue_command(&cmd, sizeof cmd, frag_first, frag_count);
+    cmd->shader_id = AZRP_SHADER_RECT;
+    cmd->y = first_offset;
+    cmd->height_total = y2 - y1;
+    cmd->height_frag = azrp_frag_height - first_offset;
+    if(cmd->height_total < cmd->height_frag)
+        cmd->height_frag = cmd->height_total;
+    cmd->xl = (x1 >> 1);
+    cmd->wl = ((x2 - 1) >> 1) - cmd->xl + 1;
+    cmd->edge_1 = (x1 & 1) ? 0 : -2;
+    cmd->edge_2 = 4 * cmd->wl + ((x2 & 1) ? -2 : 0);
+    cmd->loop = loops[color_or_effect >= 0 ? 0 : -color_or_effect];
+    cmd->color = color_or_effect;
+
     prof_leave(azrp_perf_cmdgen);
 }
