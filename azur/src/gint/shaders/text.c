@@ -20,10 +20,7 @@ static void register_shader(void)
       partial and full glyphs.
    2. Optimize the heck out of the full-width case, which is almost every
       single call.
-   3. Precompute the set of glyphs so the list can be reused when crossing
-      fragment boundaries, the shader can be written entirely in assembler, and
-      the command can possibly be reused?
-   4. Provide noclip toplevel functions, which I believe should provide a
+   3. Provide noclip toplevel functions, which I believe should provide a
       nontrivial speed boost. */
 
 void azrp_text_glyph(uint16_t *fragment, uint32_t const *data, int color,
@@ -31,63 +28,55 @@ void azrp_text_glyph(uint16_t *fragment, uint32_t const *data, int color,
 
 struct command {
     uint8_t shader_id;
-    uint8_t _;
-    int16_t x, y;
+    uint8_t y;
+    int16_t x;
+
     int16_t height, top;
+
+    uint16_t fg;
+    int16_t glyph_count;
+
     font_t const *font;
-    char const *str;
-    int fg;
-    int size;
+
+    /* TODO
+    uint8_t first_left, first_dataw;
+    uint8_t last_left, last_dataw; */
+
+    /* TODO: We use two entries per glyph; offset and data width. Can we do
+       something that doesn't require both of these? */
+    uint16_t glyphs[];
 };
 
 void azrp_shader_text(void *uniforms0, void *cmd0, void *frag0)
 {
+    (void)uniforms0;
     struct command *cmd = cmd0;
     int x = cmd->x;
-    int y = cmd->y;
     font_t const *f = cmd->font;
     int fg = cmd->fg;
-    int size = cmd->size;
     /* Storage height, top position within glyph */
-    int height = min(cmd->height, azrp_frag_height - y);
+    int height = min(cmd->height, azrp_frag_height - cmd->y);
     int top = cmd->top;
 
-    uint8_t const *str = (void *)cmd->str;
-    uint8_t const *str0 = str;
-
-    /* Raw glyph data */
-    uint32_t const *data = f->data;
+    uint16_t *frag = (uint16_t *)frag0 + azrp_width * cmd->y;
 
     /* Update for next fragment */
     cmd->height -= height;
     cmd->top += height;
     cmd->y = 0;
 
-    /* Move to top row */
-    uint16_t *frag = (uint16_t *)frag0 + azrp_width * y;
+    int glyph_count = cmd->glyph_count;
+    uint16_t *glyphs = cmd->glyphs;
 
     /* Read each character from the input string */
-    while(x < azrp_window.right)
-    {
-        uint32_t code_point = dtext_utf8_next(&str);
-        if(!code_point || (size >= 0 && str - str0 > size)) break;
-
-        int glyph = dfont_glyph_index(f, code_point);
-        if(glyph < 0) continue;
-
-        int dataw = f->prop ? f->glyph_width[glyph] : f->width;
-
-        int index = dfont_glyph_offset(f, glyph);
+    do {
+        int dataw = *glyphs++;
+        int index = *glyphs++;
+        glyph_count -= 2;
 
         /* Compute horizontal intersection between glyph and screen */
-
         int width = dataw, left = 0;
 
-        if(x + dataw <= azrp_window.left)
-        {
-            x += dataw + f->char_spacing;
-            continue;
-        }
         if(x < azrp_window.left) {
             left = azrp_window.left - x;
             width -= left;
@@ -95,14 +84,14 @@ void azrp_shader_text(void *uniforms0, void *cmd0, void *frag0)
         width = min(width, azrp_window.right - x);
 
         /* Render glyph */
-        azrp_text_glyph(frag + x + left, data + index, fg, height, width,
+        azrp_text_glyph(frag + x + left, f->data + index, fg, height, width,
             dataw - width, top * dataw + left);
 
         x += dataw + f->char_spacing;
-    }
+    } while(glyph_count);
 }
 
-void azrp_text(int x, int y, font_t const *f, char const *str,
+void azrp_text(int x, int y, font_t const *f, char const *str0,
     int fg, int size)
 {
     prof_enter(azrp_perf_cmdgen);
@@ -133,8 +122,8 @@ void azrp_text(int x, int y, font_t const *f, char const *str,
     azrp_config_get_lines(y, f->data_height,
         &frag_first, &first_offset, &frag_count);
 
-    struct command *cmd =
-        azrp_new_command(sizeof *cmd, frag_first, frag_count);
+    int extra;
+    struct command *cmd = azrp_alloc_command(sizeof *cmd, &extra, frag_count);
     if(!cmd) {
         prof_leave(azrp_perf_cmdgen);
         return;
@@ -143,13 +132,49 @@ void azrp_text(int x, int y, font_t const *f, char const *str,
     cmd->shader_id = AZRP_SHADER_TEXT;
     cmd->x = x;
     cmd->y = first_offset;
+    cmd->glyph_count = 0;
     cmd->height = height;
     cmd->top = top;
     cmd->font = f;
-    cmd->str = str;
     cmd->fg = fg;
-    cmd->size = size;
 
+    uint8_t const *str = (void *)str0;
+    uint8_t const *str_end = (size >= 0) ? str + size : (void *)-1;
+
+    /* Compute the list of glyphs to be rendered */
+    while(x < azrp_window.right) {
+        uint32_t code_point = dtext_utf8_next(&str);
+        if(!code_point || str > str_end) break;
+
+        int glyph = dfont_glyph_index(f, code_point);
+        if(glyph < 0) continue;
+
+        int dataw = f->prop ? f->glyph_width[glyph] : f->width;
+        int index = dfont_glyph_offset(f, glyph);
+
+        if((cmd->glyph_count + 1) * (int)sizeof *cmd->glyphs > extra) {
+            prof_leave(azrp_perf_cmdgen);
+            return;
+        }
+
+        /* Glyph is entirely left clipped: skip it */
+        if(x + dataw <= azrp_window.left) {
+            x += dataw + f->char_spacing;
+            cmd->x = x;
+            continue;
+        }
+
+        cmd->glyphs[cmd->glyph_count++] = dataw;
+        cmd->glyphs[cmd->glyph_count++] = index;
+        x += dataw + f->char_spacing;
+    }
+    if(cmd->glyph_count == 0) {
+        prof_leave(azrp_perf_cmdgen);
+        return;
+    }
+
+    azrp_finalize_command(cmd, sizeof *cmd + 2 * cmd->glyph_count);
+    azrp_instantiate_command(cmd, frag_first, frag_count);
     prof_leave(azrp_perf_cmdgen);
 }
 
