@@ -97,6 +97,11 @@ void azrp_text_opt(int x, int y, font_t const *f, int fg, int halign,
 {
     prof_enter(azrp_perf_cmdgen);
 
+    if(!f) {
+        f = dfont(NULL);
+        dfont(f);
+    }
+
     if(halign != DTEXT_LEFT || valign != DTEXT_TOP) {
         int w, h;
         dnsize(str0, size, f, &w, &h);
@@ -191,10 +196,7 @@ void azrp_text_opt(int x, int y, font_t const *f, int fg, int halign,
 
 void azrp_text(int x, int y, int fg, char const *str)
 {
-    font_t const *font = dfont(NULL);
-    dfont(font);
-
-    azrp_text_opt(x, y, font, fg, DTEXT_LEFT, DTEXT_TOP, str, -1);
+    azrp_text_opt(x, y, NULL, fg, DTEXT_LEFT, DTEXT_TOP, str, -1);
 }
 
 void azrp_print(int x, int y, int fg, char const *fmt, ...)
@@ -206,7 +208,7 @@ void azrp_print(int x, int y, int fg, char const *fmt, ...)
     vsnprintf(str, sizeof str, fmt, args);
     va_end(args);
 
-    azrp_text(x, y, fg, str);
+    azrp_text_opt(x, y, NULL, fg, DTEXT_LEFT, DTEXT_TOP, str, -1);
 }
 
 void azrp_print_opt(int x, int y, font_t const *font, int fg, int halign,
