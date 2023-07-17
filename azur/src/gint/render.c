@@ -300,7 +300,7 @@ void *azrp_alloc_command(size_t size, int *extra, int count)
 void azrp_finalize_command(void const *command, int total_size)
 {
     (void)command;
-    total_size = (total_size | 3) + 1;
+    total_size = (total_size + 3) & -4;
 
     if(commands_length + total_size > (int)sizeof commands_data)
         return;
