@@ -64,7 +64,7 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color)
     int min_y = max(0, min(y1, min(y2, y3)));
     int max_y = min(azrp_height-1, max(y1, max(y2, y3)));
 
-    if(min_x >= max_x || min_y >= max_y) {
+    if(min_x > max_x || min_y > max_y) {
         prof_leave(azrp_perf_cmdgen);
         return;
     }
