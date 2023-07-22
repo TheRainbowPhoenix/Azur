@@ -35,6 +35,13 @@ struct vec
     inline constexpr T const &operator[](int i) const {
         return ((T *)this)[i];
     }
+
+    constexpr T dot(vec<T,N> const &other) const {
+        T r(0);
+        for(int i = 0; i < N; ++i)
+            r += coords[i] * other[i];
+        return r;
+    }
 };
 
 template<typename T>
@@ -52,6 +59,10 @@ struct vec<T,2>
     }
     inline constexpr T const &operator[](int i) const {
         return ((T *)this)[i];
+    }
+
+    inline constexpr T dot(vec<T,2> const &other) const {
+        return x * other.x + y * other.y;
     }
 };
 using vec2 = vec<num,2>;
@@ -85,6 +96,10 @@ struct vec<T,3>
     inline constexpr vec<T,2> yz() const {
         return vec<T,2>(y, z);
     }
+
+    inline constexpr T dot(vec<T,3> const &other) const {
+        return x * other.x + y * other.y + z * other.z;
+    }
 };
 using vec3 = vec<num,3>;
 
@@ -112,6 +127,10 @@ struct vec<T,4>
 
     inline constexpr vec<T,3> xyz() const {
         return vec<T,3>(x, y, z);
+    }
+
+    constexpr T dot(vec<T,4> const &other) const {
+        return x * other.x + y * other.y + z * other.z + w * other.w;
     }
 };
 using vec4 = vec<num,4>;
