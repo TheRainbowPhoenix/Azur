@@ -116,20 +116,20 @@ struct num8
         v %= other.v;
         return *this;
     }
-    inline constexpr num8 ifloor() {
+    inline constexpr num8 ifloor() const {
         return 0;
     }
-    inline constexpr num8 floor() {
+    inline constexpr num8 floor() const {
         return num8(0);
     }
-    inline constexpr num8 iceil() {
+    inline constexpr num8 iceil() const {
         return v != 0;
     }
     /* Warning: num8::ceil() always overflows! */
-    inline constexpr num8 ceil() {
+    inline constexpr num8 ceil() const {
         return num8(0);
     }
-    inline constexpr num8 frac() {
+    inline constexpr num8 frac() const {
         num8 x;
         x.v = v;
         return x;
@@ -226,23 +226,23 @@ struct num16
         v %= other.v;
         return *this;
     }
-    inline constexpr int ifloor() {
+    inline constexpr int ifloor() const {
         return v >> 8;
     }
-    inline constexpr num16 floor() {
+    inline constexpr num16 floor() const {
         num16 x;
         x.v = v & 0xff00;
         return x;
     }
-    inline constexpr int iceil() {
+    inline constexpr int iceil() const {
         return (v + 0xff) >> 8;
     }
-    inline constexpr num16 ceil() {
+    inline constexpr num16 ceil() const {
         num16 x;
         x.v = ((v - 1) | 0xff) + 1;
         return x;
     }
-    inline constexpr num16 frac() {
+    inline constexpr num16 frac() const {
         num16 x;
         x.v = v & 0xff;
         return x;
@@ -344,23 +344,23 @@ struct num32
         v %= other.v;
         return *this;
     }
-    inline constexpr int ifloor() {
+    inline constexpr int ifloor() const {
         return v >> 16;
     }
-    inline constexpr num32 floor() {
+    inline constexpr num32 floor() const {
         num32 x;
         x.v = v & 0xffff0000;
         return x;
     }
-    inline constexpr int iceil() {
+    inline constexpr int iceil() const {
         return (v + 0xffff) >> 16;
     }
-    inline constexpr num32 ceil() {
+    inline constexpr num32 ceil() const {
         num32 x;
         x.v = ((v - 1) | 0xffff) + 1;
         return x;
     }
-    inline constexpr num32 frac() {
+    inline constexpr num32 frac() const {
         num32 x;
         x.v = v & 0xffff;
         return x;
@@ -450,23 +450,23 @@ struct num64
         v %= other.v;
         return *this;
     }
-    inline constexpr int ifloor() {
+    inline constexpr int ifloor() const {
         return v >> 32;
     }
-    inline constexpr num64 floor() {
+    inline constexpr num64 floor() const {
         num64 x;
         x.v = v & 0xffffffff00000000ull;
         return x;
     }
-    inline constexpr int iceil() {
+    inline constexpr int iceil() const {
         return (v >> 32) + ((uint32_t)v != 0);
     }
-    inline constexpr num64 ceil() {
+    inline constexpr num64 ceil() const {
         num64 x;
         x.v = ((v - 1) | 0xffffffffull) + 1;
         return x;
     }
-    inline constexpr num64 frac() {
+    inline constexpr num64 frac() const {
         num64 x;
         x.v = v & 0xffffffffull;
         return x;
