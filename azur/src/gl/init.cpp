@@ -18,7 +18,7 @@ static EM_BOOL fullscreen_callback(int ev, void const *_, void *window0)
     double w, h;
     emscripten_get_element_css_size("canvas", &w, &h);
 
-    SDL_Window *window = window0;
+    SDL_Window *window = static_cast<SDL_Window *>(window0);
     SDL_SetWindowSize(window, (int)w, (int)h);
 
     azlog(INFO, "Canvas size updated: now %dx%d", (int)w, (int)h);
@@ -157,7 +157,7 @@ static void nop(void)
 
 static EM_BOOL frame(double time, void *data)
 {
-    struct params *params = data;
+    struct params *params = static_cast<struct params *>(data);
 
     if(params->tied && params->started)
         if(params->update) params->update();
@@ -183,7 +183,7 @@ int azur_main_loop(
     emscripten_request_animation_frame_loop(frame, &p);
 
     if(!(flags & AZUR_MAIN_LOOP_TIED)) {
-        void (*update_v)(void) = (void *)update;
+        void (*update_v)(void) = (void (*)(void))update;
         emscripten_set_main_loop(update_v, update_ups, true);
     }
     else {
