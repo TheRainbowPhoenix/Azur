@@ -134,6 +134,9 @@ struct num8
         x.v = v;
         return x;
     }
+    inline constexpr num8 abs() const {
+        return *this;
+    }
 
     /* Comparisons with int */
 
@@ -245,6 +248,11 @@ struct num16
     inline constexpr num16 frac() const {
         num16 x;
         x.v = v & 0xff;
+        return x;
+    }
+    inline constexpr num16 abs() const {
+        num16 x;
+        x.v = (v < 0) ? -v : v;
         return x;
     }
 
@@ -365,6 +373,11 @@ struct num32
         x.v = v & 0xffff;
         return x;
     }
+    inline constexpr num32 abs() const {
+        num32 x;
+        x.v = (v < 0) ? -v : v;
+        return x;
+    }
     num32 sqrt() const;
 
     /* Comparisons with int */
@@ -469,6 +482,11 @@ struct num64
     inline constexpr num64 frac() const {
         num64 x;
         x.v = v & 0xffffffffull;
+        return x;
+    }
+    inline constexpr num64 abs() const {
+        num64 x;
+        x.v = (v < 0) ? -v : v;
         return x;
     }
 
@@ -619,6 +637,28 @@ inline constexpr T operator/(T const &x, int n) {
     T r;
     r.v = x.v / n;
     return r;
+}
+
+/* Comparison with double */
+
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator<(T const &x, double const &y) {
+    return x < T(y);
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator>=(T const &x, double const &y) {
+    return x >= T(y);
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator<=(T const &x, double const &y) {
+    return x <= T(y);
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr bool operator>(T const &x, double const &y) {
+    return x > T(y);
 }
 
 /* Other specific operations */
