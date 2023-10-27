@@ -22,13 +22,19 @@
 
 namespace libnum {
 
-template<typename T, int N> requires(N > 0)
-struct vec
+/* _vec_mixin: CRTP support type with common methods
+   This structure type is inherited by all vec<T,N> types. It assumes that the
+   vector type is isomorphic to T[N] and implements all the methods that can be
+   derived from that. */
+template<typename Vector, typename T, int N> requires(N > 0)
+struct _vec_mixin
 {
-    T coords[N];
+    /* Number of components in the vector. */
+    inline constexpr int size() const {
+        return N;
+    }
 
-    inline constexpr int size() const { return N; }
-
+    /* Access to the i-th component as an lvalue. */
     inline constexpr T &operator[](int i) {
         return ((T *)this)[i];
     }
@@ -36,39 +42,57 @@ struct vec
         return ((T *)this)[i];
     }
 
-    constexpr T dot(vec<T,N> const &other) const {
+    /* Dot product with another vector of the same size. */
+    constexpr T dot(Vector const &other) const {
         T r(0);
         for(int i = 0; i < N; ++i)
-            r += coords[i] * other[i];
+            r += (*this)[i] * other[i];
         return r;
+    }
+
+    /* Vector norm, squared. */
+    constexpr T norm2() const {
+        T r(0);
+        for(int i = 0; i < N; ++i)
+            r += (*this)[i] * (*this)[i];
+        return r;
+    }
+
+    /* Vector norm. */
+    // TODO: _vec_mixin<T,N>::norm() only works for num (uses .sqrt() method)
+    constexpr T norm() const {
+        return norm2().sqrt();
+    }
+
+    /* Normalized */
+    constexpr Vector normalize() const {
+        return *static_cast<const Vector *>(this) / norm();
     }
 };
 
+/* Vector type implementations. The generic type vec<T,N> uses an array and no
+   specific facilities. The specialized types vec<T,2> through vec<T,4> provide
+   access to members as .x, .y, .z, .w in addition to operator[]. They also
+   provide swizzling-style constructors and methods. */
+
+template<typename T, int N> requires(N > 0)
+struct vec: _vec_mixin<vec<T,N>, T, N>
+{
+    T coords[N];
+};
+
 template<typename T>
-struct vec<T,2>
+struct vec<T,2>: _vec_mixin<vec<T,2>, T, 2>
 {
     T x, y;
 
     vec(): x {0}, y {0} {}
     vec(T _x, T _y): x {_x}, y {_y} {}
-
-    inline constexpr int size() const { return 2; }
-
-    inline constexpr T &operator[](int i) {
-        return ((T *)this)[i];
-    }
-    inline constexpr T const &operator[](int i) const {
-        return ((T *)this)[i];
-    }
-
-    inline constexpr T dot(vec<T,2> const &other) const {
-        return x * other.x + y * other.y;
-    }
 };
 using vec2 = vec<num,2>;
 
 template<typename T>
-struct vec<T,3>
+struct vec<T,3>: _vec_mixin<vec<T,3>, T, 3>
 {
     T x, y, z;
 
@@ -77,15 +101,6 @@ struct vec<T,3>
     vec(T scalar): x {scalar}, y {scalar}, z {scalar} {}
     vec(vec<T,2> v): x {v.x}, y {v.y}, z {0} {}
     vec(vec<T,2> v, T _z): x {v.x}, y {v.y}, z {_z} {}
-
-    inline constexpr int size() const { return 3; }
-
-    inline constexpr T &operator[](int i) {
-        return ((T *)this)[i];
-    }
-    inline constexpr T const &operator[](int i) const {
-        return ((T *)this)[i];
-    }
 
     inline constexpr vec<T,2> xy() const {
         return vec<T,2>(x, y);
@@ -96,15 +111,11 @@ struct vec<T,3>
     inline constexpr vec<T,2> yz() const {
         return vec<T,2>(y, z);
     }
-
-    inline constexpr T dot(vec<T,3> const &other) const {
-        return x * other.x + y * other.y + z * other.z;
-    }
 };
 using vec3 = vec<num,3>;
 
 template<typename T>
-struct vec<T,4>
+struct vec<T,4>: _vec_mixin<vec<T,4>, T, 4>
 {
     T x, y, z, w;
 
@@ -116,21 +127,8 @@ struct vec<T,4>
     vec(vec<T,3> v): x {v.x}, y {v.y}, z {v.z}, w {0} {}
     vec(vec<T,3> v, T _w): x {v.x}, y {v.y}, z {v.z}, w {_w} {}
 
-    inline constexpr int size() const { return 4; }
-
-    inline constexpr T &operator[](int i) {
-        return ((T *)this)[i];
-    }
-    inline constexpr T const &operator[](int i) const {
-        return ((T *)this)[i];
-    }
-
     inline constexpr vec<T,3> xyz() const {
         return vec<T,3>(x, y, z);
-    }
-
-    constexpr T dot(vec<T,4> const &other) const {
-        return x * other.x + y * other.y + z * other.z + w * other.w;
     }
 };
 using vec4 = vec<num,4>;
@@ -167,14 +165,19 @@ inline constexpr vec<T,N> &operator*=(vec<T,N> &lhs, T const &rhs) {
     return lhs;
 }
 template<typename T, int N>
-inline constexpr vec<T,N> &operator*=(vec<T,N> &lhs, vec<T,N> const &rhs) {
-    T r = T(0);
+inline constexpr vec<T,N> &operator*=(vec<T,N> &lhs, int rhs) {
     for(int i = 0; i < N; i++)
-        r += lhs[i] * rhs[i];
-    return r;
+        lhs[i] *= rhs;
+    return lhs;
 }
 template<typename T, int N>
 inline constexpr vec<T,N> &operator/=(vec<T,N> &lhs, T const &rhs) {
+    for(int i = 0; i < N; i++)
+        lhs[i] /= rhs;
+    return lhs;
+}
+template<typename T, int N>
+inline constexpr vec<T,N> &operator/=(vec<T,N> &lhs, int rhs) {
     for(int i = 0; i < N; i++)
         lhs[i] /= rhs;
     return lhs;
@@ -209,7 +212,15 @@ inline constexpr vec<T,N> operator*(T const &lhs, vec<T,N> rhs) {
     return rhs;
 }
 template<typename T, int N>
+inline constexpr vec<T,N> operator*(vec<T,N> lhs, int rhs) {
+    return lhs *= rhs;
+}
+template<typename T, int N>
 inline constexpr vec<T,N> operator/(vec<T,N> lhs, T const &rhs) {
+    return lhs /= rhs;
+}
+template<typename T, int N>
+inline constexpr vec<T,N> operator/(vec<T,N> lhs, int rhs) {
     return lhs /= rhs;
 }
 
