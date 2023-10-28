@@ -91,6 +91,42 @@ public:
 
     /*** Configuration ***/
 
+    /* Meta-programming trick to get the offset of a field within a structure.
+       Should only be used with POD VertexAttr types. */
+    template<typename U>
+    constexpr void *offsetOf(U VertexAttr::*x) {
+        VertexAttr t {};
+        return (void *)((char *)&(t.*x) - (char *)&t);
+    }
+
+    /* Bind a VertexAttr field of arbitrary type U to a vertex attribute using
+       glVertexAttribPointer(). */
+    template<typename U>
+    void bindVertexAttributeFP(U VertexAttr::*x, GLint size, GLenum type,
+        GLboolean normalized, char const *name) {
+        glVertexAttribPointer(
+            // TODO: Cache glGetAttribLocation()
+            glGetAttribLocation(m_prog, name),
+            size, type, normalized, sizeof(VertexAttr), offsetOf(x));
+    }
+
+    /* Same for integer attributes, using glVertexAttribIPointer(). */
+    template<typename U>
+    void bindVertexAttributeInt(
+        U VertexAttr::*x, GLint size, GLenum type, char const *name) {
+        glVertexAttribIPointer(
+            // TODO: Cache glGetAttribLocation()
+            glGetAttribLocation(m_prog, name),
+            size, type, sizeof(VertexAttr), offsetOf(x));
+    }
+
+    /* Shortcuts for binding attributes of common types, which automatically
+       provide the type details. */
+    void bindVertexAttribute(float     VertexAttr::*x, char const *name);
+    void bindVertexAttribute(glm::vec2 VertexAttr::*x, char const *name);
+    void bindVertexAttribute(glm::vec3 VertexAttr::*x, char const *name);
+    void bindVertexAttribute(glm::vec4 VertexAttr::*x, char const *name);
+
     /* Set uniforms. */
     void setUniform(char const *name, float f);
     void setUniform(char const *name, float f1, float f2);
@@ -242,6 +278,30 @@ bool ShaderProgram<T>::compile()
    Render with glDrawArrays or glDrawElements.
 
    TODO: Can we minimize switching (eg. texture switching)? */
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(float T::*x, char const *name)
+{
+    bindVertexAttributeFP(x, 1, GL_FLOAT, GL_FALSE, name);
+}
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(glm::vec2 T::*x, char const *name)
+{
+    bindVertexAttributeFP(x, 2, GL_FLOAT, GL_FALSE, name);
+}
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(glm::vec3 T::*x, char const *name)
+{
+    bindVertexAttributeFP(x, 3, GL_FLOAT, GL_FALSE, name);
+}
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(glm::vec4 T::*x, char const *name)
+{
+    bindVertexAttributeFP(x, 4, GL_FLOAT, GL_FALSE, name);
+}
 
 template<typename T>
 void ShaderProgram<T>::setUniform(char const *name, float f)
