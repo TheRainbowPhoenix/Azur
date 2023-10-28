@@ -53,6 +53,9 @@ GLuint compileShaderFile(GLenum type, char const *path);
    Returns the shader ID, 0 in case of error. Errors are logged. */
 GLuint compileShaderSource(GLenum type, char const *code, ssize_t size);
 
+/* Link a program. This function takes an array of shader IDs. */
+GLuint link(GLuint *shaders, int count);
+
 /* Link a program. This function takes a 0-terminated list of shaders IDs and
    links them into a new program. Returns the new program's ID, or 0 in case
    of error. Errors are logged. */

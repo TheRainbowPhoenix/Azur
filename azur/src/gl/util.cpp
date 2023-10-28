@@ -13,10 +13,17 @@
 #include <string.h>
 #include <stdarg.h>
 
+extern char const *azur_glsl__vs_prelude_gles2;
+extern char const *azur_glsl__vs_prelude_gl3;
+extern char const *azur_glsl__fs_prelude_gles2;
+extern char const *azur_glsl__fs_prelude_gl3;
+
+namespace azur::gl {
+
 /* Read the full contents of a file into the heap. Returns an malloc'd pointer
    on success, NULL if an error occurs. */
 // TODO: Move the load_file() function to a more convenient fs util header
-static char *load_file(char const *path, size_t *out_size)
+char *load_file(char const *path, size_t *out_size)
 {
     char *contents = NULL;
     long size = 0;
@@ -39,13 +46,6 @@ load_file_end:
     if(fp) fclose(fp);
     return contents;
 }
-
-extern char const *azur_glsl__vs_prelude_gles2;
-extern char const *azur_glsl__vs_prelude_gl3;
-extern char const *azur_glsl__fs_prelude_gles2;
-extern char const *azur_glsl__fs_prelude_gl3;
-
-namespace azur::gl {
 
 char const *errorString(GLenum ec)
 {
@@ -157,7 +157,7 @@ GLuint compileShaderSource(GLenum type, char const *code, ssize_t size)
     return compileShader(type, code, size, "<inline>");
 }
 
-static GLuint link(GLuint *shaders, int count)
+GLuint link(GLuint *shaders, int count)
 {
     GLuint prog = glCreateProgram();
     if(prog == 0) {
