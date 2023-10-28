@@ -4,7 +4,7 @@
 
 #pragma once
 #include <azur/defs.h>
-AZUR_BEGIN_DECLS
+#include <functional>
 
 /* azur_init(): Initialize the engine's subsystems.
 
@@ -47,9 +47,9 @@ int azur_init(char const *title, int window_width, int window_height);
 
    The main loop stops whenever update() returns non-zero. */
 int azur_main_loop(
-   void (*render)(void), int render_fps,
-   int (*update)(void), int update_ups,
-   int flags);
+    std::function<void(void)> const &render, int render_fps,
+    std::function<int(void)> const &update, int update_ups,
+    int flags);
 
 /* Render loop is synchronized with display refresh. */
 #define AZUR_MAIN_LOOP_VSYNC       0x01
@@ -69,5 +69,3 @@ int azur_main_loop(
 SDL_Window *azur_sdl_window(void);
 
 #endif /* AZUR_TOOLKIT_SDL */
-
-AZUR_END_DECLS

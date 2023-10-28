@@ -44,6 +44,7 @@
 #pragma once
 #include <azur/gl/gl.h>
 #include <glm/glm.hpp>
+#include <string.h>
 #include <string>
 #include <vector>
 #include <map>

@@ -146,8 +146,8 @@ static double ml_time = 0.0;
 #include <emscripten/html5.h>
 
 struct params {
-    void (*render)(void);
-    int (*update)(void);
+    std::function<void(void)> const &render;
+    std::function<int(void)> const &update;
     bool tied, started;
 };
 
@@ -155,36 +155,43 @@ static void nop(void)
 {
 }
 
+static std::function<int(void)> const *update_int = nullptr;
+static void update_void(void)
+{
+    (*update_int)();
+}
+
 static EM_BOOL frame(double time, void *data)
 {
     struct params *params = static_cast<struct params *>(data);
 
     if(params->tied && params->started)
-        if(params->update) params->update();
+        params->update();
 
-    if(params->render) params->render();
+    params->render();
     params->started = true;
 
     return EM_TRUE;
 }
 
 int azur_main_loop(
-    void (*render)(void), int render_fps,
-    int (*update)(void), int update_ups,
+    std::function<void(void)> const &render, int render_fps,
+    std::function<int(void)> const &update, int update_ups,
     int flags)
 {
-    static struct params p;
-    p.render = render;
-    p.update = update;
-    p.tied = flags & AZUR_MAIN_LOOP_TIED;
-    p.started = false;
+    static struct params p = {
+        .render = render,
+        .update = update,
+        .tied = (flags & AZUR_MAIN_LOOP_TIED) != 0,
+        .started = false,
+    };
 
     (void)render_fps;
     emscripten_request_animation_frame_loop(frame, &p);
 
     if(!(flags & AZUR_MAIN_LOOP_TIED)) {
-        void (*update_v)(void) = (void (*)(void))update;
-        emscripten_set_main_loop(update_v, update_ups, true);
+        update_int = &update;
+        emscripten_set_main_loop(update_void, update_ups, true);
     }
     else {
         /* Even if no update is requested, we want emscripten to simulate an
@@ -231,8 +238,8 @@ static int filter_event(void *userdata, SDL_Event *event)
 }
 
 int azur_main_loop(
-    void (*render)(void), int render_fps,
-    int (*update)(void), int update_ups,
+    std::function<void(void)> const &render, int render_fps,
+    std::function<int(void)> const &update, int update_ups,
     int flags)
 {
     /* Register an event to wake up SDL_WaitEvent() on timer interrupts */
@@ -261,7 +268,7 @@ int azur_main_loop(
     while(1) {
         if(update_tick && !(flags & AZUR_MAIN_LOOP_TIED)) {
             update_tick = 0;
-            if(update && update()) break;
+            if(update()) break;
         }
 
         /* When vsync is enabled, render() is indirectly blocking so we just
@@ -271,9 +278,9 @@ int azur_main_loop(
 
             /* Tied renders and updates */
             if(started && (flags & AZUR_MAIN_LOOP_TIED)) {
-                if(update && update()) break;
+                if(update()) break;
             }
-            if(render) render();
+            render();
             started = true;
         }
 
