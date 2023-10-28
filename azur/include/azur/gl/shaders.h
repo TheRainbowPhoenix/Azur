@@ -51,6 +51,15 @@
 
 namespace azur::gl {
 
+/* TODO: Complete state associated with each program:
+   1. Uniforms (glUniform*)
+   2. Vertex array (glBindVertexArray)
+   3. Textures (glActiveTexture, glBindTexture)
+   4. Other state (glEnable, glDisable, glBlendFunc)
+   Render with glDrawArrays or glDrawElements.
+
+   TODO: Can we minimize switching (eg. texture switching)? */
+
 template<typename VertexAttr>
 class ShaderProgram
 {
@@ -92,6 +101,9 @@ public:
 
     /*** Configuration ***/
 
+    /* Get an attribute's location, with caching. */
+    GLuint getAttribute(char const *name);
+
     /* Meta-programming trick to get the offset of a field within a structure.
        Should only be used with POD VertexAttr types. */
     template<typename U>
@@ -105,10 +117,8 @@ public:
     template<typename U>
     void bindVertexAttributeFP(U VertexAttr::*x, GLint size, GLenum type,
         GLboolean normalized, char const *name) {
-        glVertexAttribPointer(
-            // TODO: Cache glGetAttribLocation()
-            glGetAttribLocation(m_prog, name),
-            size, type, normalized, sizeof(VertexAttr), offsetOf(x));
+        glVertexAttribPointer(getAttribute(name), size, type, normalized,
+            sizeof(VertexAttr), offsetOf(x));
     }
 
     /* Same for integer attributes, using glVertexAttribIPointer(). */
@@ -116,9 +126,7 @@ public:
     void bindVertexAttributeInt(
         U VertexAttr::*x, GLint size, GLenum type, char const *name) {
         glVertexAttribIPointer(
-            // TODO: Cache glGetAttribLocation()
-            glGetAttribLocation(m_prog, name),
-            size, type, sizeof(VertexAttr), offsetOf(x));
+            getAttribute(name), size, type, sizeof(VertexAttr), offsetOf(x));
     }
 
     /* Shortcuts for binding attributes of common types, which automatically
@@ -216,6 +224,8 @@ private:
     std::map<GLuint, std::string> m_code;
     /* List of vertices during rendering. */
     std::vector<VertexAttr> m_vertices;
+    /* Map of attribute names to shader locations. */
+    std::map<std::string, GLuint> m_attributes;
 };
 
 template<typename T>
@@ -271,14 +281,16 @@ bool ShaderProgram<T>::compile()
     return success;
 }
 
-/* TODO: Complete state associated with each program:
-   1. Uniforms (glUniform*)
-   2. Vertex array (glBindVertexArray)
-   3. Textures (glActiveTexture, glBindTexture)
-   4. Other state (glEnable, glDisable, glBlendFunc)
-   Render with glDrawArrays or glDrawElements.
+template<typename T>
+GLuint ShaderProgram<T>::getAttribute(char const *name)
+{
+    std::string name_s {name};
 
-   TODO: Can we minimize switching (eg. texture switching)? */
+    if(!m_attributes.count(name_s))
+        m_attributes[name_s] = glGetAttribLocation(m_prog, name);
+
+    return m_attributes[name_s];
+}
 
 template<typename T>
 void ShaderProgram<T>::bindVertexAttribute(float T::*x, char const *name)
