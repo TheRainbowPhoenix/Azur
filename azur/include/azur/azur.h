@@ -14,8 +14,12 @@
 
    On GINT_CG, the window size can be 396x224, 198x112 or 132x75 and this
    configures the rendering engine for super-resolution. Returns non-zero if
-   the size is not one of these. */
-int azur_init(char const *title, int window_width, int window_height);
+   the size is not one of these.
+
+   On OpenGL platforms, if debug is set the OpenGL debug extension is enabled
+   and OpenGL messages are automatically logged to stderr. */
+int azur_init(
+   char const *title, int window_width, int window_height, bool debug = false);
 
 /* azur_main_loop(): Run the update/render loop.
 

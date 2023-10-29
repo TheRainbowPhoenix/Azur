@@ -43,6 +43,7 @@
 
 #pragma once
 #include <azur/gl/gl.h>
+#include <azur/log.h>
 #include <glm/glm.hpp>
 #include <string.h>
 #include <string>
@@ -92,11 +93,13 @@ public:
 
     /* Compile all provided code. */
     bool compile();
+    /* Link compiled code (usually after binding attribute locations). */
+    bool link();
 
-    /* Check whether the program has been compiled successfully. */
+    /* Check whether the program has been linked successfully. */
     bool isCompiled() const
     {
-        return (m_prog != 0);
+        return (m_prog != 0) && m_linked;
     }
 
     /*** Configuration ***/
@@ -116,25 +119,26 @@ public:
        glVertexAttribPointer(). */
     template<typename U>
     void bindVertexAttributeFP(U VertexAttr::*x, GLint size, GLenum type,
-        GLboolean normalized, char const *name) {
-        glVertexAttribPointer(getAttribute(name), size, type, normalized,
-            sizeof(VertexAttr), offsetOf(x));
+        GLboolean normalized, GLuint id) {
+        glEnableVertexAttribArray(id);
+        glVertexAttribPointer(id, size, type, normalized, sizeof(VertexAttr),
+            offsetOf(x));
     }
 
     /* Same for integer attributes, using glVertexAttribIPointer(). */
     template<typename U>
     void bindVertexAttributeInt(
-        U VertexAttr::*x, GLint size, GLenum type, char const *name) {
+        U VertexAttr::*x, GLint size, GLenum type, GLuint id) {
         glVertexAttribIPointer(
-            getAttribute(name), size, type, sizeof(VertexAttr), offsetOf(x));
+            id, size, type, sizeof(VertexAttr), offsetOf(x));
     }
 
     /* Shortcuts for binding attributes of common types, which automatically
        provide the type details. */
-    void bindVertexAttribute(float     VertexAttr::*x, char const *name);
-    void bindVertexAttribute(glm::vec2 VertexAttr::*x, char const *name);
-    void bindVertexAttribute(glm::vec3 VertexAttr::*x, char const *name);
-    void bindVertexAttribute(glm::vec4 VertexAttr::*x, char const *name);
+    void bindVertexAttribute(float     VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(glm::vec2 VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(glm::vec3 VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(glm::vec4 VertexAttr::*x, GLuint id);
 
     /* Set uniforms. */
     void setUniform(char const *name, float f);
@@ -213,6 +217,7 @@ public:
 protected:
     /* Program ID */
     GLuint m_prog = 0;
+    bool m_linked = false;
     /* Vertex Array Object and Vertex Buffer Object with parameters */
     GLuint m_vao = 0, m_vbo = 0;
     /* Size of the VBO on the GPU */
@@ -222,6 +227,8 @@ private:
     /* Map from program type (vertex/etc/fragment shader) to code during the
        construction phase. */
     std::map<GLuint, std::string> m_code;
+    /* List of shader descriptors between compiling and linking. */
+    std::vector<GLuint> m_shaders;
     /* List of vertices during rendering. */
     std::vector<VertexAttr> m_vertices;
     /* Map of attribute names to shader locations. */
@@ -260,8 +267,6 @@ bool ShaderProgram<T>::addSourceFile(
 template<typename T>
 bool ShaderProgram<T>::compile()
 {
-    /* List of shader descriptors obtained from OpenGL. */
-    std::vector<GLuint> m_shaders;
     bool success = true;
 
     for(auto const &[type, code]: m_code) {
@@ -272,12 +277,70 @@ bool ShaderProgram<T>::compile()
             success = false;
     }
 
-    // TODO: No link error detection?
-    m_prog = success ? link(m_shaders.data(), m_shaders.size()) : 0;
+    /* Generate a new program */
+    if(success) {
+        m_prog = glCreateProgram();
+        if(m_prog == 0) {
+            azlog(ERROR, "glCreateProgram failed\n");
+            success = false;
+        }
+    }
 
-    for(auto id: m_shaders)
-        glDeleteShader(id);
+    /* Attach all shaders */
+    if(success) {
+        for(int i = 0; i < m_shaders.size(); i++)
+            glAttachShader(m_prog, m_shaders[i]);
+    }
+    else {
+        for(auto id: m_shaders)
+            glDeleteShader(id);
+        m_shaders.clear();
+    }
+    return success;
+}
 
+template<typename T>
+bool ShaderProgram<T>::link()
+{
+    if(!m_shaders.size())
+        return false;
+
+    GLint rc = GL_FALSE;
+    GLsizei log_length = 0;
+    bool success = true;
+
+    azlog(INFO, "Linking program\n");
+    glLinkProgram(m_prog);
+
+    glGetProgramiv(m_prog, GL_LINK_STATUS, &rc);
+    if(rc == GL_FALSE) {
+        azlog(ERROR, "link failed!\n");
+        success = false;
+    }
+
+    glGetProgramiv(m_prog, GL_INFO_LOG_LENGTH, &log_length);
+    if(log_length > 0) {
+        GLchar *log = new GLchar[log_length + 1];
+        glGetProgramInfoLog(m_prog, log_length, &log_length, log);
+        if(log_length > 0) {
+            azlogc(ERROR, "%s", log);
+            if(log[log_length - 1] != '\n')
+                azlogc(ERROR, "\n");
+        }
+        delete[] log;
+    }
+
+    /* Detach all shaders */
+    for(int i = 0; i < m_shaders.size(); i++) {
+        glDetachShader(m_prog, m_shaders[i]);
+        glDeleteShader(m_shaders[i]);
+    }
+
+    if(!success) {
+        glDeleteProgram(m_prog);
+        m_prog = 0;
+    }
+    m_linked = success;
     return success;
 }
 
@@ -293,27 +356,27 @@ GLuint ShaderProgram<T>::getAttribute(char const *name)
 }
 
 template<typename T>
-void ShaderProgram<T>::bindVertexAttribute(float T::*x, char const *name)
+void ShaderProgram<T>::bindVertexAttribute(float T::*x, GLuint id)
 {
-    bindVertexAttributeFP(x, 1, GL_FLOAT, GL_FALSE, name);
+    bindVertexAttributeFP(x, 1, GL_FLOAT, GL_FALSE, id);
 }
 
 template<typename T>
-void ShaderProgram<T>::bindVertexAttribute(glm::vec2 T::*x, char const *name)
+void ShaderProgram<T>::bindVertexAttribute(glm::vec2 T::*x, GLuint id)
 {
-    bindVertexAttributeFP(x, 2, GL_FLOAT, GL_FALSE, name);
+    bindVertexAttributeFP(x, 2, GL_FLOAT, GL_FALSE, id);
 }
 
 template<typename T>
-void ShaderProgram<T>::bindVertexAttribute(glm::vec3 T::*x, char const *name)
+void ShaderProgram<T>::bindVertexAttribute(glm::vec3 T::*x, GLuint id)
 {
-    bindVertexAttributeFP(x, 3, GL_FLOAT, GL_FALSE, name);
+    bindVertexAttributeFP(x, 3, GL_FLOAT, GL_FALSE, id);
 }
 
 template<typename T>
-void ShaderProgram<T>::bindVertexAttribute(glm::vec4 T::*x, char const *name)
+void ShaderProgram<T>::bindVertexAttribute(glm::vec4 T::*x, GLuint id)
 {
-    bindVertexAttributeFP(x, 4, GL_FLOAT, GL_FALSE, name);
+    bindVertexAttributeFP(x, 4, GL_FLOAT, GL_FALSE, id);
 }
 
 template<typename T>

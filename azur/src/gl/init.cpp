@@ -5,6 +5,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
+#include <string>
+
 static SDL_Window *window = NULL;
 static SDL_GLContext glcontext = NULL;
 
@@ -39,7 +41,40 @@ static void enter_fullscreen(SDL_Window *window)
 }
 #endif /* AZUR_PLATFORM_EMSCRIPTEN */
 
-int azur_init(char const *title, int window_width, int window_height)
+static void gl_debug_callback(GLenum source, GLenum type, GLuint id,
+    GLenum severity, GLsizei length, const GLchar *message, const GLvoid *)
+{
+    std::string source_str {"OtherSource"};
+    std::string type_str {"other-type"};
+    std::string severity_str {"?"};
+    (void)id;
+    (void)length;
+
+    if(source == GL_DEBUG_SOURCE_API)               source_str = "API";
+    if(source == GL_DEBUG_SOURCE_WINDOW_SYSTEM)     source_str = "WM";
+    if(source == GL_DEBUG_SOURCE_SHADER_COMPILER)   source_str = "Compiler";
+    if(source == GL_DEBUG_SOURCE_THIRD_PARTY)       source_str = "ThirdParty";
+    if(source == GL_DEBUG_SOURCE_APPLICATION)       source_str = "App";
+
+    if(type == GL_DEBUG_TYPE_ERROR)                 type_str = "error";
+    if(type == GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR)   type_str = "deprecation";
+    if(type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR)    type_str = "ub";
+    if(type == GL_DEBUG_TYPE_PORTABILITY)           type_str = "non-portable";
+    if(type == GL_DEBUG_TYPE_PERFORMANCE)           type_str = "performance";
+    if(type == GL_DEBUG_TYPE_MARKER)                type_str = "marker";
+    if(type == GL_DEBUG_TYPE_PUSH_GROUP)            type_str = "push-group";
+    if(type == GL_DEBUG_TYPE_POP_GROUP)             type_str = "pop-group";
+
+    if(severity == GL_DEBUG_SEVERITY_HIGH)          severity_str = "high";
+    if(severity == GL_DEBUG_SEVERITY_MEDIUM)        severity_str = "medium";
+    if(severity == GL_DEBUG_SEVERITY_LOW)           severity_str = "low";
+    if(severity == GL_DEBUG_SEVERITY_NOTIFICATION)  severity_str = "note";
+
+    fprintf(stderr, "[OpenGL/%s/%s/%s] %s\n",
+        source_str.c_str(), type_str.c_str(), severity_str.c_str(), message);
+}
+
+int azur_init(char const *title, int window_width, int window_height, bool dbg)
 {
     int rc = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
     if(rc < 0) {
@@ -79,6 +114,9 @@ int azur_init(char const *title, int window_width, int window_height)
         return 1;
     }
 
+    if(dbg)
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+
     glcontext = SDL_GL_CreateContext(window);
     if(!glcontext) {
         azlog(FATAL, "SDL_GL_CreateContext: %s\n", SDL_GetError());
@@ -97,6 +135,11 @@ int azur_init(char const *title, int window_width, int window_height)
         return 1;
     }
     #endif
+
+    if(dbg) {
+        glEnable(GL_DEBUG_OUTPUT);
+        glDebugMessageCallback(gl_debug_callback, nullptr);
+    }
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
