@@ -72,7 +72,7 @@ static void gl_debug_callback(GLenum source, GLenum type, GLuint id,
     fprintf(stderr, "[OpenGL/%s/%s/%s] %s\n",
         source_str.c_str(), type_str.c_str(), severity_str.c_str(), message);
 }
-#endif
+#endif /* AZUR_GRAPHICS_OPENGL_3_3 */
 
 int azur_init(char const *title, int window_width, int window_height, bool dbg)
 {

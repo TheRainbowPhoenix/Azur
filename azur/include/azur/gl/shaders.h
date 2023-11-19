@@ -39,6 +39,9 @@
 // The attribute format describes per-vertex data in the form of a structure
 // layout, and is basically a meta-level reflection of the structure type used
 // for VertexAttr. It tells OpenGL how to read the raw vertex data buffer.
+//
+// TODO: Better support for identifying stages and binding resources to them
+// (eg. textures are bound to specific stages).
 //---
 
 #pragma once
@@ -129,6 +132,7 @@ public:
     template<typename U>
     void bindVertexAttributeInt(
         U VertexAttr::*x, GLint size, GLenum type, GLuint id) {
+        glEnableVertexAttribArray(id);
         glVertexAttribIPointer(
             id, size, type, sizeof(VertexAttr), offsetOf(x));
     }
@@ -139,6 +143,8 @@ public:
     void bindVertexAttribute(glm::vec2 VertexAttr::*x, GLuint id);
     void bindVertexAttribute(glm::vec3 VertexAttr::*x, GLuint id);
     void bindVertexAttribute(glm::vec4 VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(u8        VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(int       VertexAttr::*x, GLuint id);
 
     /* Set uniforms. */
     void setUniform(char const *name, float f);
@@ -150,6 +156,7 @@ public:
     void setUniform(char const *name, glm::mat2 const &m2);
     void setUniform(char const *name, glm::mat3 const &m3);
     void setUniform(char const *name, glm::mat4 const &m4);
+    void setUniform(char const *name, int i);
 
     /*** Generating draw commands ***/
 
@@ -380,6 +387,18 @@ void ShaderProgram<T>::bindVertexAttribute(glm::vec4 T::*x, GLuint id)
 }
 
 template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(u8 T::*x, GLuint id)
+{
+    bindVertexAttributeFP(x, 1, GL_UNSIGNED_BYTE, GL_FALSE, id);
+}
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(int T::*x, GLuint id)
+{
+    bindVertexAttributeInt(x, 1, GL_INT, id);
+}
+
+template<typename T>
 void ShaderProgram<T>::setUniform(char const *name, float f)
 {
     glUniform1f(glGetUniformLocation(m_prog, name), f);
@@ -435,6 +454,12 @@ void ShaderProgram<T>::setUniform(char const *name, glm::mat4 const &m4)
 {
     glUniformMatrix4fv(
         glGetUniformLocation(m_prog, name), 1, GL_FALSE, &m4[0][0]);
+}
+
+template<typename T>
+void ShaderProgram<T>::setUniform(char const *name, int i)
+{
+    glUniform1i(glGetUniformLocation(m_prog, name), i);
 }
 
 template<typename T>
