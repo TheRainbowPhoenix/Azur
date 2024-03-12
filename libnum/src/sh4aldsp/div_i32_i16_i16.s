@@ -6,7 +6,7 @@
 # SH4AL-DSP optimized i32 / i16 -> i16 division.
 #
 # This simply uses the CPU's ability to divide without rotation for 16 bit
-# divisors without all the boilerplate than libgcc's __sdivisi3 requires since
+# divisors without all the boilerplate that libgcc's __sdivisi3 requires since
 # it assumes 32-bit inputs. Used for num16 division.
 # ---
 

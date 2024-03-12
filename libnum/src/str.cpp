@@ -61,7 +61,7 @@ static int toString(char *str, T x)
         integral_part = -integral_part - (x.frac().v != 0);
     }
 
-    n += sprintf(str + n, "%ld", integral_part);
+    n += sprintf(str + n, "%lld", integral_part);
     if(x.frac().v != 0) {
         str[n++] = '.';
         n += decimalDigits<T>(str + n, x);
