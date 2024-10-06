@@ -22,6 +22,7 @@ elseif(NOT "${AZUR_PATH}" STREQUAL "")
   message("(Azur) Found AZUR_PATH_${AZUR_PLATFORM}: ${AZUR_LIB}")
   message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
 else()
+  unset(AZUR_PATH)
   find_library(AZUR_PATH "azur_${AZUR_PLATFORM}")
   if("${AZUR_PATH}" STREQUAL "AZUR_PATH-NOTFOUND")
     message(SEND_ERROR
@@ -29,8 +30,8 @@ else()
       "You can specify the installation path with the environment variable "
       "AZUR_PATH, such as AZUR_PATH=/path/to/lib\n")
   else()
-    set(AZUR_LIB "${AZUR_PATH}/lib/libazur_${AZUR_PLATFORM}.a")
-    set(AZUR_INCLUDE "${AZUR_PATH}/include")
+    set(AZUR_LIB "${AZUR_PATH}")
+    get_filename_component(AZUR_INCLUDE "${AZUR_PATH}/../../include" ABSOLUTE)
 
     message("(Azur) Found Azur at: ${AZUR_LIB}")
     message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
