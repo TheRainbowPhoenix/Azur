@@ -692,4 +692,22 @@ inline constexpr T modf(T const &x, T const &y) {
     return (r.v && (r.v ^ y.v) < 0) ? r + y : r;
 }
 
+/* Fractional part between (0, 1]; like frac(), but returns 1 for integers. */
+template<typename T> requires(is_num<T>)
+inline constexpr T fracCeil(T x) {
+    T y;
+    y.v = x.v - 1;
+    y = y.frac();
+    y.v = y.v + 1;
+    return y;
+}
+
+/* Floor but round integers down */
+template<typename T> requires(is_num<T>)
+inline constexpr T previousInteger(T x) {
+    T y;
+    y.v = x.v - 1;
+    return y.floor();
+}
+
 } /* namespace libnum */
