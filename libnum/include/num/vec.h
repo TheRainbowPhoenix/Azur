@@ -216,6 +216,12 @@ inline constexpr vec<T,N> operator*(vec<T,N> lhs, int rhs) {
     return lhs *= rhs;
 }
 template<typename T, int N>
+inline constexpr vec<T,N> operator*(int lhs, vec<T,N> rhs) {
+    for(int i = 0; i < N; i++)
+        rhs[i] *= lhs;
+    return rhs;
+}
+template<typename T, int N>
 inline constexpr vec<T,N> operator/(vec<T,N> lhs, T const &rhs) {
     return lhs /= rhs;
 }
