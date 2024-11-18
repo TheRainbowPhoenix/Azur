@@ -41,6 +41,7 @@ static void enter_fullscreen(SDL_Window *window)
 }
 #endif /* AZUR_PLATFORM_EMSCRIPTEN */
 
+#ifdef AZUR_GRAPHICS_OPENGL_3_3
 static void gl_debug_callback(GLenum source, GLenum type, GLuint id,
     GLenum severity, GLsizei length, const GLchar *message, const GLvoid *)
 {
@@ -73,6 +74,7 @@ static void gl_debug_callback(GLenum source, GLenum type, GLuint id,
     fprintf(stderr, "[OpenGL/%s/%s/%s] %s\n",
         source_str.c_str(), type_str.c_str(), severity_str.c_str(), message);
 }
+#endif
 
 int azur_init(char const *title, int window_width, int window_height, bool dbg)
 {
@@ -114,8 +116,10 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
         return 1;
     }
 
+    #ifdef AZUR_GRAPHICS_OPENGL_3_3
     if(dbg)
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+    #endif
 
     glcontext = SDL_GL_CreateContext(window);
     if(!glcontext) {
@@ -136,10 +140,12 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
     }
     #endif
 
+    #ifdef AZUR_GRAPHICS_OPENGL_3_3
     if(dbg) {
         glEnable(GL_DEBUG_OUTPUT);
         glDebugMessageCallback(gl_debug_callback, nullptr);
     }
+    #endif
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
