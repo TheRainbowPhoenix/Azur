@@ -62,6 +62,9 @@ int azur_main_loop(
 /* Update loop is tied to the render loop. */
 #define AZUR_MAIN_LOOP_TIED        0x04
 
+/* azur_quit(): Shutdown engine. */
+void azur_quit(void);
+
 //---
 // Global information
 //---

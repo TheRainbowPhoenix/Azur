@@ -10,8 +10,6 @@
 static SDL_Window *window = NULL;
 static SDL_GLContext glcontext = NULL;
 
-static void main_loop_quit(void);
-
 #ifdef AZUR_PLATFORM_EMSCRIPTEN
 #include <emscripten/html5.h>
 
@@ -157,11 +155,8 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
     return 0;
 }
 
-__attribute__((destructor))
 void azur_quit(void)
 {
-    main_loop_quit();
-
     if(window) SDL_DestroyWindow(window);
     if(glcontext) SDL_GL_DeleteContext(glcontext);
     SDL_Quit();
@@ -252,10 +247,6 @@ int azur_main_loop(
     return 0;
 }
 
-static void main_loop_quit(void)
-{
-}
-
 /* In standard SDL, vsync is configurable and timers are used to get
    callbacks. Events are queued to the main thread since rendering cannot be
    done from another thread. */
@@ -343,11 +334,6 @@ int azur_main_loop(
         SDL_FilterEvents(filter_event, NULL);
     }
 
-    return 0;
-}
-
-static void main_loop_quit(void)
-{
     if(ml_timer_render > 0) {
         SDL_RemoveTimer(ml_timer_render);
         ml_timer_render = 0;
@@ -356,6 +342,8 @@ static void main_loop_quit(void)
         SDL_RemoveTimer(ml_timer_update);
         ml_timer_update = 0;
     }
+
+    return 0;
 }
 
 #endif /* emscripten SDL vs. standard SDL */
