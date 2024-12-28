@@ -159,6 +159,7 @@ void azur_quit(void)
 {
     if(window) SDL_DestroyWindow(window);
     if(glcontext) SDL_GL_DeleteContext(glcontext);
+    IMG_Quit();
     SDL_Quit();
 
     window = NULL;
