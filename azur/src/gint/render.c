@@ -30,7 +30,7 @@ static int commands_count=0, commands_length=0;
    Rendering order is integer order. */
 static uint32_t commands_array[AZRP_MAX_COMMANDS];
 
-static GALIGNED(4) uint8_t commands_data[16384];
+static GALIGNED(4) uint8_t commands_data[32768];
 
 /* Shader program information. */
 typedef struct {
