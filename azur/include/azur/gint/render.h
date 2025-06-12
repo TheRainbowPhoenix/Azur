@@ -239,6 +239,9 @@ enum {
     AZRP_RECT_WHITEN = -3,
 };
 
+/* azrp_line(): Draw a straight line with the Bresenham algorithm. */
+void azrp_line(int x1, int y1, int x2, int y2, int color);
+
 /* azrp_text(): Render a string of text, like dtext(). */
 void azrp_text(int x, int y, int fg, char const *str);
 
