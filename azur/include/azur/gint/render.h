@@ -1,32 +1,32 @@
-//---
-// azur.render: Specialized rendering pipeline for fx-CG gint
+//---------------------------------------------------------------------------//
+//  ,"  /\  ",    Azur: A game engine for CASIO fx-CG and PC                 //
+// |  _/__\_  |   Designed by Lephe' and the Planète Casio community.        //
+//  "._`\/'_."    License: MIT <https://opensource.org/licenses/MIT>         //
+//---------------------------------------------------------------------------//
+// azur.render: Tiled rendering pipeline for 16-bit CASIO calculators
 //
-// On-chip ILRAM and DSP memory bring out the full power of the SH4AL-DSP.
-// Therefore, optimal performance in a game's renderer will rely on using on-
-// chip memory instead of standard RAM for graphics data.
+// On the CASIO fx-CG and fx-CP, rendering is bottlenecked pretty hard by
+// writing the frame data to RAM. Just writing out 396x224 pixels on the fx-CG
+// takes 6.1 ms (at default clock speeds).
 //
-// The obvious limitation of on-chip memory is its size (20 kiB total), which
-// is much smaller than a full-resolution image (~177 kiB). This prompts for a
-// technique known as "frame streaming", where fragments (strips of VRAM) of
-// each frame are rendered and transferred to the display in sequence.
-// Reasonable efficiency and suitable display driver settings can prevent
-// tearing even though data is not being sent continuously.
+// This Azur rendering pipeline implements tiled rendering [1] so the
+// framebuffer can be replaced with smaller fragments (tiles) that fit in the
+// much-faster on-chip memory of the SH4AL-DSP, specifically the DSP XRAM and
+// YRAM (which total 16 kB).
 //
-// The main components of this rendering pipeline are the command queue and
-// fragment shaders.
+// With this method, draw calls don't render but append to a command queue.
+// When all draw calls have been made, the queue is sorted by fragment, and
+// then each fragment is rendered and sent to the screen. This results in some
+// wonky timings for display refresh times but the non-continuity of the
+// display update is mostly invisible, with improved rendering performance.
 //
-// The command queue stores all rendering commands, split into fragments. Each
-// fragment needs to read through a number of commands, and the order does not
-// match the order of API calls because each API call typically impacts several
-// fragments. Therefore commands need to be stored.
+// To fit the system, every rendering program (called "shaders" as in "OpenGL
+// fragment shaders") need to render top-to-bottom and take their input from
+// the command queue. Azur has utilities to facilitate their implementation.
 //
-// Fragment shaders are the programs that render commands into graphics data
-// for each fragments. They are pretty similar to OpenGL shaders, in that they
-// receive vectors of objects (command parameters) and produce graphics data to
-// fragments (even though each fragment is a strip of VRAM, not a pixel), hence
-// the name.
+// The prefix for this module is `azrp` for "azur rendering pipeline".
 //
-// The prefix for this module is [azrp] for "azur rendering pipeline".
+// [1] https://en.wikipedia.org/wiki/Tiled_rendering
 //---
 
 #pragma once
@@ -35,8 +35,7 @@ AZUR_BEGIN_DECLS
 
 #include <gint/display.h>
 #include <gint/image.h>
-
-#include <libprof.h>
+#include <gint/prof.h>
 
 /* arzp_shader_t: Type of shader functions
    * [uniforms] is a pointer to any data the shader might use as uniform.
@@ -48,12 +47,8 @@ typedef void azrp_shader_t(void *uniforms, void *command, void *fragment);
    This function is mainly called when fragment settings change. */
 typedef void azrp_shader_configure_t(void);
 
-/* Video memory fragment used as rendering target (in XRAM). */
+/* Video memory fragment used as rendering target (in XRAM/YRAM). */
 extern uint16_t *azrp_frag;
-
-/* Maximum number of commands that can be queued. (This is only one of two
-   limits, the other being the size of the command data.) */
-#define AZRP_MAX_COMMANDS 1024
 
 /* Maximum number of shaders that can be defined. (This is a loose limit). */
 #define AZRP_MAX_SHADERS 32
@@ -312,7 +307,10 @@ int azrp_register_shader(azrp_shader_t *program,
    or even points to valid memory. */
 void azrp_set_uniforms(int shader_id, void *uniforms);
 
-/* azrp_new_command(): Create a new command to be rendered next frame
+bool azrp_cmdq_create(int index_size, int data_size);
+void azrp_cmdq_destroy(void);
+
+/* Create a new command to be rendered next frame.
 
    This function reserves `size` bytes of space in the command buffer, and
    returns the address of the region so the caller can fill in a command. The
@@ -324,9 +322,9 @@ void azrp_set_uniforms(int shader_id, void *uniforms);
 
    Returns NULL if the maximum number of commands is reached or the command
    buffer is exhausted. */
-void *azrp_new_command(size_t size, int fragment, int count);
+void *azrp_cmdq_command(size_t size, int fragment, int count);
 
-/* azrp_alloc_command(): Allocate a command in the command buffer
+/* Allocate a command in the command buffer.
 
    This function, when used together with with azrp_finalize_command() and
    azrp_instantiate_command(), provides finer control over the command
@@ -358,17 +356,17 @@ void *azrp_new_command(size_t size, int fragment, int count);
    Returns a pointer to the buffer where the command should be filled. If
    `size` or `count` is too large, returns NULL. In any case, `*extra` is set
    to the command buffer space remaining after reserving `size` bytes. */
-void *azrp_alloc_command(size_t size, int *extra, int count);
+void *azrp_cmdq_alloc(size_t size, int *extra, int count);
 
-/* azrp_finalize_command(): Finalize an allocation by azrp_alloc_command()
+/* Finalize an allocation by azrp_cmdq_alloc().
 
    This function finishes an allocation started by azrp_alloc_command() and
    advances the bump allocator. `total_size` is the size of the command, ie.
    the sum of the `size` parameter to azrp_alloc_command() and the amount of
    extra data used (less that azrp_alloc_command()'s, `*extra`). */
-void azrp_finalize_command(void const *command, int total_size);
+bool azrp_cmdq_finalize(void const *command, int total_size);
 
-/* azrp_instantiate_command(): Queue a command for a range of fragments
+/* Queue an allocated command for a range of fragments.
 
    This function fills in the command queue with instructions to render the
    given command on fragments of the range [fragment .. fragment+count). Unlike
@@ -376,7 +374,12 @@ void azrp_finalize_command(void const *command, int total_size);
    same command, if disjoint intervals are ever needed.
 
    Returns true on success, false if the queue is out of space. */
-bool azrp_instantiate_command(void const *command, int fragment, int count);
+bool azrp_cmdq_queue(void const *command, int fragment, int count);
+
+#define azrp_new_command azrp_cmdq_command
+#define azrp_alloc_command azrp_cmdq_alloc
+#define azrp_finalize_command azrp_cmdq_finalize
+#define azrp_instantiate_command azrp_cmdq_queue
 
 /* azrp_queue_image(): Split and queue a gint image command
 
