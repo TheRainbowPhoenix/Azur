@@ -29,7 +29,7 @@ void azrp_clear(uint16_t color)
 {
     prof_enter(azrp_perf_cmdgen);
 
-    struct command *cmd = azrp_new_command(sizeof *cmd, 0, azrp_frag_count);
+    struct command *cmd = azrp_cmdq_command(sizeof *cmd, 0, azrp_frag_count);
     if(!cmd) {
         prof_leave(azrp_perf_cmdgen);
         return;

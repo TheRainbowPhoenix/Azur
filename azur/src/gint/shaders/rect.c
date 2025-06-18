@@ -73,7 +73,7 @@ void azrp_rect(int x1, int y1, int width0, int height0, int color_or_effect)
         &frag_first, &first_offset, &frag_count);
 
     struct command *cmd =
-        azrp_new_command(sizeof *cmd, frag_first, frag_count);
+        azrp_cmdq_command(sizeof *cmd, frag_first, frag_count);
     if(!cmd) {
         prof_leave(azrp_perf_cmdgen);
         return;

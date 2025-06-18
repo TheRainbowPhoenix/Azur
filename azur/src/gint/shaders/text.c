@@ -139,7 +139,7 @@ void azrp_text_opt(int x, int y, font_t const *f, int fg, int halign,
         &frag_first, &first_offset, &frag_count);
 
     int extra;
-    struct command *cmd = azrp_alloc_command(sizeof *cmd, &extra, frag_count);
+    struct command *cmd = azrp_cmdq_alloc(sizeof *cmd, &extra, frag_count);
     if(!cmd) {
         prof_leave(azrp_perf_cmdgen);
         return;
@@ -189,8 +189,8 @@ void azrp_text_opt(int x, int y, font_t const *f, int fg, int halign,
         return;
     }
 
-    azrp_finalize_command(cmd, sizeof *cmd + 2 * cmd->glyph_count);
-    azrp_instantiate_command(cmd, frag_first, frag_count);
+    azrp_cmdq_finalize(cmd, sizeof *cmd + 2 * cmd->glyph_count);
+    azrp_cmdq_queue(cmd, frag_first, frag_count);
     prof_leave(azrp_perf_cmdgen);
 }
 

@@ -64,13 +64,8 @@ static struct azrp_cmdq_index azrp_cmdq_index = { 0 };
 struct azrp_cmdq_data { u8 *buf; int capacity; int cursor; };
 static struct azrp_cmdq_data azrp_cmdq_data = { 0 };
 
-/* Default command queue parameters. */
-#define AZRP_CMDQ_DEFAULT_INDEX_SIZE 1024
-#define AZRP_CMDQ_DEFAULT_DATA_SIZE 32768
-
-/* Allocate or re-allocate the command queue to specific dimensions.
-   TODO: Absolute limit on 64 kB cmdq size due to encoding of index! */
-bool azrp_cmdq_create(int index_capacity, int data_capacity)
+// TODO: azrp_cmdq_setup: absolute 64 kB data limit due to encoding of index!
+bool azrp_cmdq_setup(int index_capacity, int data_capacity)
 {
     struct azrp_cmdq_index *i = &azrp_cmdq_index;
     struct azrp_cmdq_data *d = &azrp_cmdq_data;
@@ -97,6 +92,7 @@ bool azrp_cmdq_create(int index_capacity, int data_capacity)
     return ok;
 }
 
+#if 0
 /* Free the command queue. */
 void azrp_cmdq_destroy(void)
 {
@@ -106,6 +102,7 @@ void azrp_cmdq_destroy(void)
     free(azrp_cmdq_data.buf);
     memset(&azrp_cmdq_data, 0, sizeof azrp_cmdq_data);
 }
+#endif
 
 /* Custom quick-sort implementation for the command index. */
 static void azrp_cmdq_sort_index_aux(u32 *index, int low, int high)
@@ -144,12 +141,14 @@ GINLINE static void azrp_cmdq_sort_index(void)
 /* Allocate a command from the data buffer. */
 void *azrp_cmdq_alloc(size_t size, int *extra, int count)
 {
+    struct azrp_cmdq_index *i = &azrp_cmdq_index;
     struct azrp_cmdq_data *d = &azrp_cmdq_data;
     *extra = d->capacity - d->cursor - size;
 
     if(*extra < 0) {
-        /* If queue is empty, auto-allocate with the defaults and retry */
-        if(azrp_cmdq_create(AZRP_CMDQ_DEFAULT_INDEX_SIZE,
+        /* If queue is not setup, auto-allocate with the defaults and retry */
+        if(!i->buf && !i->capacity && !d->buf && !d->capacity &&
+            azrp_cmdq_setup(AZRP_CMDQ_DEFAULT_INDEX_SIZE,
                             AZRP_CMDQ_DEFAULT_DATA_SIZE))
             return azrp_cmdq_alloc(size, extra, count);
         return NULL;
@@ -205,6 +204,15 @@ void *azrp_cmdq_command(uint size, int fragment, int count)
 #endif
     return cmd;
 }
+
+__attribute__((alias("azrp_cmdq_command")))
+void *azrp_new_command(size_t size, int fragment, int count);
+__attribute__((alias("azrp_cmdq_alloc")))
+void *azrp_alloc_command(size_t size, int *extra, int count);
+__attribute__((alias("azrp_cmdq_finalize")))
+bool azrp_finalize_command(void const *command, int total_size);
+__attribute__((alias("azrp_cmdq_queue")))
+bool azrp_instantiate_command(void const *command, int fragment, int count);
 
 //---
 // High and low-level pipeline functions

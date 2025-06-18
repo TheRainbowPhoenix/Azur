@@ -74,7 +74,7 @@ void azrp_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int color)
         &frag_first, &first_offset, &frag_count);
 
     struct command *cmd =
-        azrp_new_command(sizeof *cmd, frag_first, frag_count);
+        azrp_cmdq_command(sizeof *cmd, frag_first, frag_count);
     if(!cmd) {
         prof_leave(azrp_perf_cmdgen);
         return;

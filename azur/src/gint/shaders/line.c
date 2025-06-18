@@ -110,7 +110,7 @@ void azrp_line(int xA, int yA, int xB, int yB, int color)
     int frag_count = frag_last - frag_first + 1;
 
     struct command *cmd =
-        azrp_new_command(sizeof *cmd, frag_first, frag_count);
+        azrp_cmdq_command(sizeof *cmd, frag_first, frag_count);
     if(!cmd) {
         prof_leave(azrp_perf_cmdgen);
         return;

@@ -307,85 +307,87 @@ int azrp_register_shader(azrp_shader_t *program,
    or even points to valid memory. */
 void azrp_set_uniforms(int shader_id, void *uniforms);
 
-bool azrp_cmdq_create(int index_size, int data_size);
-void azrp_cmdq_destroy(void);
+/* Setup the command queue. This can be called when intializing Azur or
+   in-between frames to change the way commands are stored.
+   * The index size determines the maximum number of draw calls that can be
+     made (specificially the number of commands, counting fragments).
+   * The data size limits the total size of draw calls' parameter structures.
+     Currently it can't be set higher than 64 kiB.
+   Returns true on success, false if an allocation error occurs or the
+   parameters are invalid.
 
-/* Create a new command to be rendered next frame.
+   If either limit is exceeded while preparing a frame, commands will stop
+   being recorded, leading to an incomplete frame being displayed.
 
-   This function reserves `size` bytes of space in the command buffer, and
-   returns the address of the region so the caller can fill in a command. The
-   command will run for fragments in the interval [fragment .. fragment+count).
+   If this function is not called when setting up Azur, the queue will be
+   automatically setup upon first use with the default settings below.
 
-   The command's data must start with an 8-bit shader ID; anything else is up
-   to the shader. In particular the command's data *can* be updated by the
-   shader function to reflect progress in the rendering between each fragment.
+   TODO: azrp_cmdq_setup: expose default sizes?
+   TODO: azrp_cmdq_setup: use vram, split index, etc. */
+bool azrp_cmdq_setup(int index_size, int data_size);
+/* Default queue settings */
+#define AZRP_CMDQ_DEFAULT_INDEX_SIZE 1024
+#define AZRP_CMDQ_DEFAULT_DATA_SIZE 32768
 
-   Returns NULL if the maximum number of commands is reached or the command
-   buffer is exhausted. */
+/* Create and queue a new command for next frame. This allocates `size` bytes
+   in the command data buffer and returns a pointer. Caller should then fill
+   the command. The command is queued for fragments in the interval [fragment..
+   fragment+count). Returns NULL if the command queue index is out of space.
+
+   The command's data must start with an 8-bit shader ID; everything else is up
+   to the shader. The command data will be preserved in-between calls to the
+   shader fragment function and can be modified. */
 void *azrp_cmdq_command(size_t size, int fragment, int count);
 
-/* Allocate a command in the command buffer.
+/* Lower-level functions for allocating a variable-length command in two steps.
+   First, azrp_cmdq_alloc returns a pointer and the maximum possible size, then
+   the caller fills the command and, when done, indicates its chosen size with
+   azrp_cmdq_finalize. No other allocation must take place in-between the calls
+   to azrp_cmdq_alloc and azrp_cmdq_finalize. The command is later queued to
+   fragments with azrp_cmdq_queue. See the text shader for an example.
 
-   This function, when used together with with azrp_finalize_command() and
-   azrp_instantiate_command(), provides finer control over the command
-   generation process compared to the simple azrp_new_command().
+   azrp_cmdq_alloc allocates memory for a command of size at least `size` (the
+   fixed part in the command structure), returns a writable pointer, and sets
+   the amount of memory available beyond `size` in `*extra` (for the variable-
+   length part). NULL is returned if `size` doesn't fit. The caller must check
+   that the variable-length data is shorter than `*extra` bytes and **MUST
+   NOT** write beyond this limit.
 
-   azrp's command buffer is a bump allocator. Each new command is allocated
-   directly after the previous one. With azrp_new_command(), the full size of
-   the command must be known when allocating. By contrast, azrp_alloc_command()
-   allows variable-sized commands to be generated: the caller can figure out
-   the final size as it fills in the command, and later commits it by calling
-   azrp_finalize_command() which advances the bump allocator.
+   azrp_cmdq_finalize finalizes the allocation; the caller must specify the
+   total size (both fixed and variable-length). If it turns out that `*extra`
+   is too small for the variable-length part, forget about the command and
+   don't call azrp_cmdq_finalize. Then you can continue making draw calls.
 
-   No shader commands can be generated while an allocation is ongoing.
-   azrp_finalize_command() must be called to finish allocating before
-   azrp_new_command() or azrp_alloc_command() can be called again.
-
-   This function allocates memory for a command of size at least `size`. The
-   total amount of memory available beyond `size` is recorded in `*extra`.
-   `size` usually represents the fixed size in commands (eg. the natural size
-   of structures with flexible array members); it is rarely 0 as a 1-byte
-   shader ID is always required.
-
-   `count` is the number of fragments that the caller knows will be covered by
-   the command. If less than `count` entries are available in the internal
-   queue where these are held, azrp_alloc_command() will return NULL
-   immediately. This avoids generating a command that could not be instantiated
-   anyway. If the final set of affected fragments is unknown, use 0.
-
-   Returns a pointer to the buffer where the command should be filled. If
-   `size` or `count` is too large, returns NULL. In any case, `*extra` is set
-   to the command buffer space remaining after reserving `size` bytes. */
-void *azrp_cmdq_alloc(size_t size, int *extra, int count);
-
-/* Finalize an allocation by azrp_cmdq_alloc().
-
-   This function finishes an allocation started by azrp_alloc_command() and
-   advances the bump allocator. `total_size` is the size of the command, ie.
-   the sum of the `size` parameter to azrp_alloc_command() and the amount of
-   extra data used (less that azrp_alloc_command()'s, `*extra`). */
+   If the number of fragments affected is known in advance, it can be specified
+   in `fragment_count` to enable some early checks. You can always set it to 0
+   and wait for the checks in azrp_cmdq_queue.
+   TODO: Fragment count check in azrp_cmdq_alloc won't support split index */
+void *azrp_cmdq_alloc(size_t size, int *extra, int fragment_count);
 bool azrp_cmdq_finalize(void const *command, int total_size);
 
-/* Queue an allocated command for a range of fragments.
+/* Queue an allocated command for a range of fragments. This fills the command
+   queue index for fragments in the range [fragment .. fragment+count). Returns
+   true on success, false if the command queue index is out of space.
 
-   This function fills in the command queue with instructions to render the
-   given command on fragments of the range [fragment .. fragment+count). Unlike
-   with azrp_new_command(), this function can be called multiple times for the
-   same command, if disjoint intervals are ever needed.
-
-   Returns true on success, false if the queue is out of space. */
+   In the rare case that a command should be queued for a set of fragments
+   that's not an interval, the command can be allocated with azrp_cmdq_alloc
+   and azrp_cmdq_finalized (even if not variable-length), then queued in
+   multiple calls to this function. azrp_cmdq_command doesn't allow that. */
 bool azrp_cmdq_queue(void const *command, int fragment, int count);
 
-#define azrp_new_command azrp_cmdq_command
-#define azrp_alloc_command azrp_cmdq_alloc
-#define azrp_finalize_command azrp_cmdq_finalize
-#define azrp_instantiate_command azrp_cmdq_queue
+__attribute__((deprecated("Use azrp_cmdq_command")))
+void *azrp_new_command(size_t size, int fragment, int count);
+__attribute__((deprecated("Use azrp_cmdq_alloc")))
+void *azrp_alloc_command(size_t size, int *extra, int count);
+__attribute__((deprecated("Use azrp_cmdq_finalize")))
+bool azrp_finalize_command(void const *command, int total_size);
+__attribute__((deprecated("Use azrp_cmdq_queue")))
+bool azrp_instantiate_command(void const *command, int fragment, int count);
 
-/* azrp_queue_image(): Split and queue a gint image command
-
-    The command must have been completely prepared with gint_image_mkcmd() and
-    have had its color effect sections filled. This function sets the shader ID
-    and adjusts the command for fragmented rendering. */
+/* Split and queue a gint image command. The command must have been completely
+   prepared with gint_image_mkcmd() and have had its color effect sections
+   filled. This function sets the shader ID and adjusts the command for tiled
+   rendering. This is mostly an internal function. */
 void azrp_queue_image(struct gint_image_box *box, image_t const *img,
     struct gint_image_cmd *cmd);
 
