@@ -55,13 +55,13 @@ prof_t azrp_perf_render;
    - Bits 31..16:  Fragment number
    - Bits 15..00:  Offset into command data buffer (bytes)
    This is chosen so that rendering order is the normal order of integers. */
-struct azrp_cmdq_index { u32 *buf; int size; int cursor; };
+struct azrp_cmdq_index { u32 *buf; int capacity; int cursor; };
 static struct azrp_cmdq_index azrp_cmdq_index = { 0 };
 
 /* Command data buffer; this is an untyped concatenation of command bytes,
    referenced by offset in the queue index. It functions as a bump allocator,
    shared for all fragments and shaders. */
-struct azrp_cmdq_data { u8 *buf; int size; int cursor; };
+struct azrp_cmdq_data { u8 *buf; int capacity; int cursor; };
 static struct azrp_cmdq_data azrp_cmdq_data = { 0 };
 
 /* Default command queue parameters. */
@@ -70,26 +70,26 @@ static struct azrp_cmdq_data azrp_cmdq_data = { 0 };
 
 /* Allocate or re-allocate the command queue to specific dimensions.
    TODO: Absolute limit on 64 kB cmdq size due to encoding of index! */
-bool azrp_cmdq_create(int index_size, int data_size)
+bool azrp_cmdq_create(int index_capacity, int data_capacity)
 {
     struct azrp_cmdq_index *i = &azrp_cmdq_index;
     struct azrp_cmdq_data *d = &azrp_cmdq_data;
     bool ok = true;
 
-    if(data_size > 0x10000)
+    if(data_capacity > 0x10000)
         return false;
 
-    if(index_size != i->size) {
+    if(index_capacity != i->capacity) {
         free(i->buf);
-        i->buf = malloc(index_size * sizeof *i->buf);
-        i->size = i->buf ? index_size : 0;
+        i->buf = malloc(index_capacity * sizeof *i->buf);
+        i->capacity = i->buf ? index_capacity : 0;
         i->cursor = 0;
         ok &= i->buf != NULL;
     }
-    if(data_size != d->size) {
+    if(data_capacity != d->capacity) {
         free(d->buf);
-        d->buf = malloc(data_size);
-        d->size = d->buf ? data_size : 0;
+        d->buf = malloc(data_capacity);
+        d->capacity = d->buf ? data_capacity : 0;
         d->cursor = 0;
         ok &= d->buf != NULL;
     }
@@ -145,7 +145,7 @@ GINLINE static void azrp_cmdq_sort_index(void)
 void *azrp_cmdq_alloc(size_t size, int *extra, int count)
 {
     struct azrp_cmdq_data *d = &azrp_cmdq_data;
-    *extra = d->size - d->cursor - size;
+    *extra = d->capacity - d->cursor - size;
 
     if(*extra < 0) {
         /* If queue is empty, auto-allocate with the defaults and retry */
@@ -164,7 +164,7 @@ bool azrp_cmdq_finalize(void const *command, int size)
     size = (size + 3) & -4;
     (void)command;
 
-    if(d->cursor + size > d->size)
+    if(d->cursor + size > d->capacity)
         return false;
 
     d->cursor += size;
@@ -174,7 +174,7 @@ bool azrp_cmdq_finalize(void const *command, int size)
 bool azrp_cmdq_queue(void const *command, int fragment, int count)
 {
     struct azrp_cmdq_index *i = &azrp_cmdq_index;
-    if(i->cursor + count > i->size)
+    if(i->cursor + count > i->capacity)
         return false;
 
     int offset = (u8 *)command - azrp_cmdq_data.buf;
