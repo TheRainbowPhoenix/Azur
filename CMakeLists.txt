@@ -72,8 +72,7 @@ if(AZUR_PLATFORM STREQUAL gint)
 
   # Link with gint and libprof (we only do this to get include directories)
   find_package(Gint 2.8 REQUIRED)
-  find_package(LibProf 2.4 REQUIRED)
-  link_libraries(LibProf::LibProf Gint::Gint)
+  link_libraries(Gint::Gint)
 
   # Install in the fxSDK sysroot
   set(LIBDIR "${FXSDK_LIB}")
