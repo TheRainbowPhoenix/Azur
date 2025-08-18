@@ -268,6 +268,7 @@ static Uint32 handler(Uint32 interval, void *param)
     *(int *)param = 1;
 
     SDL_Event e;
+    SDL_zero(e);
     e.user.type = SDL_USEREVENT;
     e.user.code = ml_event;
     SDL_PushEvent(&e);
