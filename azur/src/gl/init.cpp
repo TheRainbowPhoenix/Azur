@@ -21,7 +21,7 @@ static EM_BOOL fullscreen_callback(int ev, void const *_, void *window0)
     SDL_Window *window = static_cast<SDL_Window *>(window0);
     SDL_SetWindowSize(window, (int)w, (int)h);
 
-    azlog(INFO, "Canvas size updated: now %dx%d", (int)w, (int)h);
+    azlog(INFO, "Canvas size updated: now %dx%d\n", (int)w, (int)h);
     return EM_TRUE;
 }
 
@@ -76,6 +76,32 @@ static void gl_debug_callback(GLenum source, GLenum type, GLuint id,
 
 int azur_init(char const *title, int window_width, int window_height, bool dbg)
 {
+    /* Select the OpenGL profile. This has to come before SDL_Init. */
+
+    #if defined(AZUR_GRAPHICS_OPENGL_3_3)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+        SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    if(dbg)
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+
+    #elif defined(AZUR_GRAPHICS_OPENGL_ES_2_0)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+        SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+    #elif defined(AZUR_GRAPHICS_OPENGL_ES_3_0)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+        SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    #endif
+
     int rc = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
     if(rc < 0) {
         azlog(FATAL, "SDL_Init: %s\n", SDL_GetError());
@@ -88,23 +114,6 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
         return 1;
     }
 
-    /* Select OpenGL 3.3 core */
-    #ifdef AZUR_GRAPHICS_OPENGL_3_3
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-        SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    #endif
-
-    /* ... or select Open GL ES 2.0 */
-    #ifdef AZUR_GRAPHICS_OPENGL_ES_2_0
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    #endif
-
     window = SDL_CreateWindow(title,
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         window_width, window_height,
@@ -113,11 +122,6 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
         azlog(FATAL, "SDL_CreateWindow: %s\n", SDL_GetError());
         return 1;
     }
-
-    #ifdef AZUR_GRAPHICS_OPENGL_3_3
-    if(dbg)
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-    #endif
 
     glcontext = SDL_GL_CreateContext(window);
     if(!glcontext) {

@@ -38,8 +38,10 @@
 
 /* OpenGL 3.3 core (essentially desktop targets). */
 #cmakedefine AZUR_GRAPHICS_OPENGL_3_3
-/* WebGL-friendly subset of OpenGL ES 2.0 (mobile targets and emscripten). */
+/* OpenGL ES 2, formerly used for WebGL 1 (now deprecated) */
 #cmakedefine AZUR_GRAPHICS_OPENGL_ES_2_0
+/* WebGL 2-friendly subset of OpenGL ES 3.0 (mobile targets and emscripten). */
+#cmakedefine AZUR_GRAPHICS_OPENGL_ES_3_0
 /* Custom broken rendering engine for the fx-CG running gint. */
 #cmakedefine AZUR_GRAPHICS_GINT_CG
 

@@ -24,7 +24,7 @@
 # -DAZUR_PLATFORM:
 #   gint        Build for gint for fx-CG
 #   linux       Build for Linux with SDL and OpenGL 3.3
-#   emscripten  Build for Emscripten with SDL and OpenGL ES 2.0
+#   emscripten  Build for Emscripten with SDL and WebGL 2/OpenGL ES 3.0
 #
 # -DCMAKE_INSTALL_PREFIX:
 #   The usual install prefix. It must be different for each platform. For gint,
@@ -33,7 +33,7 @@
 #---
 
 cmake_minimum_required(VERSION 3.15)
-project(Azur VERSION 0.1 LANGUAGES C CXX ASM)
+project(Azur VERSION 0.2 LANGUAGES C CXX ASM)
 include(CTest)
 
 set(CMAKE_INSTALL_MESSAGE LAZY)
@@ -99,7 +99,7 @@ endif()
 if(AZUR_PLATFORM STREQUAL emscripten)
   set(AZUR_PLATFORM_EMSCRIPTEN TRUE)
   set(AZUR_TOOLKIT_SDL TRUE)
-  set(AZUR_GRAPHICS_OPENGL_ES_2_0 TRUE)
+  set(AZUR_GRAPHICS_OPENGL_ES_3_0 TRUE)
   set(AZUR_ARCH_GENERIC TRUE)
   set(AZUR_TERMINAL_PLAIN TRUE)
 
@@ -108,7 +108,9 @@ if(AZUR_PLATFORM STREQUAL emscripten)
   add_link_options(${PORTS} -O3)
 endif()
 
-if(AZUR_GRAPHICS_OPENGL_3_3 OR AZUR_GRAPHICS_OPENGL_ES_2_0)
+if(AZUR_GRAPHICS_OPENGL_3_3 OR
+   AZUR_GRAPHICS_OPENGL_ES_2_0 OR
+   AZUR_GRAPHICS_OPENGL_ES_3_0)
   set(AZUR_GRAPHICS_OPENGL TRUE)
 endif()
 

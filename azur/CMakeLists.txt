@@ -21,6 +21,8 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
   list(APPEND ASSETS
     glsl/vs_prelude_gles2.glsl
     glsl/fs_prelude_gles2.glsl
+    glsl/vs_prelude_gles3.glsl
+    glsl/fs_prelude_gles3.glsl
     glsl/vs_prelude_gl3.glsl
     glsl/fs_prelude_gl3.glsl
     glsl/vs_tex2d.glsl
