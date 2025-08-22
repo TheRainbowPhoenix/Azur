@@ -134,7 +134,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # Subdirectory selection
 #---
 
-# Exclud third-party software from the build on gint; it wouldn't work
+# Exclude third-party software from the build on gint; it wouldn't work ^^"
 if(NOT AZUR_PLATFORM STREQUAL gint)
   add_subdirectory(3rdparty)
 endif()

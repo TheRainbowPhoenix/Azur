@@ -21,6 +21,12 @@
 int azur_init(
    char const *title, int window_width, int window_height, bool debug = false);
 
+/* Initialize the Dear ImGui backend for the current Azur backend. This is
+   supported on all platforms except gint. This should be called after
+   azur_init(). The associated resources will be freed automatically by
+   azur_quit(). Returns true on success, false on failure. */
+bool azur_init_imgui(void);
+
 /* azur_main_loop(): Run the update/render loop.
 
    This function runs the main loop, which regularly calls two different
@@ -62,7 +68,7 @@ int azur_main_loop(
 /* Update loop is tied to the render loop. */
 #define AZUR_MAIN_LOOP_TIED        0x04
 
-/* azur_quit(): Shutdown engine. */
+/* Shutdown engine. */
 void azur_quit(void);
 
 //---

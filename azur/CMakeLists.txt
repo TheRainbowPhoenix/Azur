@@ -15,6 +15,7 @@ set(ASSETS)
 if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
   list(APPEND SOURCES
     src/gl/init.cpp
+    src/gl/imgui.cpp
     src/gl/util.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c")
 
@@ -92,6 +93,10 @@ set_target_properties(azur PROPERTIES OUTPUT_NAME "azur_${AZUR_PLATFORM}")
 # Link with GL3W to load the OpenGL 3.3 core profile
 if(AZUR_GRAPHICS_OPENGL_3_3)
   target_link_libraries(azur PUBLIC gl3w)
+endif()
+
+if(NOT AZUR_PLATFORM STREQUAL gint)
+  target_link_libraries(azur PUBLIC imgui)
 endif()
 
 target_include_directories(azur PRIVATE

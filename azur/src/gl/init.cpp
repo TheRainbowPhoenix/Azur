@@ -159,8 +159,15 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
     return 0;
 }
 
+namespace azur_internal {
+void azur_quit_imgui(void);
+}
+
 void azur_quit(void)
 {
+    // TODO: Replace this with a non-direct call so we don't dl
+    azur_internal::azur_quit_imgui();
+
     if(window) SDL_DestroyWindow(window);
     if(glcontext) SDL_GL_DeleteContext(glcontext);
     IMG_Quit();
