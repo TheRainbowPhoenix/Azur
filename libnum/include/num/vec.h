@@ -50,23 +50,23 @@ struct _vec_mixin
         return r;
     }
 
-    /* Vector norm, squared. */
-    constexpr T norm2() const {
+    /* Vector length, squared. */
+    constexpr T length2() const {
         T r(0);
         for(int i = 0; i < N; ++i)
             r += (*this)[i] * (*this)[i];
         return r;
     }
 
-    /* Vector norm. */
-    // TODO: _vec_mixin<T,N>::norm() only works for num (uses .sqrt() method)
-    constexpr T norm() const {
-        return norm2().sqrt();
+    /* Vector length. */
+    // TODO: _vec_mixin<T,N>::length() only works for num (uses .sqrt() method)
+    constexpr T length() const {
+        return length2().sqrt();
     }
 
     /* Normalized */
     constexpr Vector normalize() const {
-        return *static_cast<const Vector *>(this) / norm();
+        return *static_cast<const Vector *>(this) / length();
     }
 };
 
