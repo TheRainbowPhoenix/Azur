@@ -87,6 +87,12 @@ if(AZUR_GRAPHICS_GINT_CG)
 endif()
 
 add_library(azur STATIC ${SOURCES})
+target_link_libraries(azur PUBLIC num)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  target_compile_options(azur PUBLIC
+    -Wno-mathematical-notation-identifier-extension)
+endif()
 
 set_target_properties(azur PROPERTIES OUTPUT_NAME "azur_${AZUR_PLATFORM}")
 

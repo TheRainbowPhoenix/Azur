@@ -18,7 +18,7 @@
 
 /* Common types. */
 #ifdef __cplusplus
-# include <cstdint>
+# include <cinttypes>
 # include <cstddef>
 #else
 # include <inttypes.h>

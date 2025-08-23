@@ -29,13 +29,12 @@ static void enter_fullscreen(SDL_Window *window)
 {
     EmscriptenFullscreenStrategy strategy = {
         .scaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF,
-        .filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT,
+        .filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_NEAREST,
         .canvasResizedCallback = fullscreen_callback,
         .canvasResizedCallbackUserData = window,
     };
     emscripten_enter_soft_fullscreen("canvas", &strategy);
-    azlog(INFO, "Entered fullscreen! (info)");
-    azlog(ERROR, "Entered fullscreen! (error)");
+    azlog(INFO, "Entered fullscreen!\n");
 }
 #endif /* AZUR_PLATFORM_EMSCRIPTEN */
 
