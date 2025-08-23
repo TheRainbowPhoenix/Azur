@@ -158,9 +158,10 @@ GLuint compileShaderFile(GLenum type, char const *path)
     return id;
 }
 
-GLuint compileShaderSource(GLenum type, char const *code, ssize_t size)
+GLuint compileShaderSource(
+    GLenum type, char const *code, ssize_t size, char const *source)
 {
-    return compileShader(type, code, size, "<inline>");
+    return compileShader(type, code, size, source);
 }
 
 GLuint link(GLuint *shaders, int count)
@@ -223,7 +224,7 @@ GLuint linkProgram(GLuint shader_1, ... /* 0-terminated */)
 }
 
 static GLuint loadProgram_v(bool is_file, GLenum type, char const *input,
-    va_list *args)
+    va_list *args, char const *source="<inline>")
 {
     GLuint shaders[32];
     int count = 0;
@@ -231,7 +232,7 @@ static GLuint loadProgram_v(bool is_file, GLenum type, char const *input,
     do {
         shaders[count++] = is_file
             ? compileShaderFile(type, input)
-            : compileShaderSource(type, input, -1);
+            : compileShaderSource(type, input, -1, source);
         type = va_arg(*args, GLenum);
         input = va_arg(*args, char const *);
     }
@@ -254,11 +255,12 @@ GLuint loadProgramFiles(GLenum type, char const *path, ...)
     return prog;
 }
 
-GLuint loadProgramSources(GLenum type, char const *code, ...)
+GLuint loadProgramSources(
+    char const *source, GLenum type, char const *code, ...)
 {
     va_list args;
     va_start(args, code);
-    GLuint prog = loadProgram_v(false, type, code, &args);
+    GLuint prog = loadProgram_v(false, type, code, &args, source);
     va_end(args);
     return prog;
 }

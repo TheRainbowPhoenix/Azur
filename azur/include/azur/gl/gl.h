@@ -55,7 +55,8 @@ GLuint compileShaderFile(GLenum type, char const *path);
 /* Compiles the provided code string as a shader of the specified type. If size
    is -1, `code` is assumed to be NUL-terminated and strlen(code) is used.
    Returns the shader ID, 0 in case of error. Errors are logged. */
-GLuint compileShaderSource(GLenum type, char const *code, ssize_t size);
+GLuint compileShaderSource(
+    GLenum type, char const *code, ssize_t size, char const *source="<inline>");
 
 /* Link a program. This function takes an array of shader IDs. */
 GLuint link(GLuint *shaders, int count);
@@ -70,13 +71,14 @@ GLuint linkProgram(GLuint shader_1, ... /* 0-terminated */);
    and compiled with compileShaderFile(), then the whole program is linked
    with linkProgram(). Returns the program ID, or 0 in case of error. */
 GLuint loadProgramFiles(
-   GLenum type_1, char const *path_1,
-   ... /* Pairs repeat until 0-terminated */);
+    GLenum type_1, char const *path_1,
+    ... /* Pairs repeat until 0-terminated */);
 
 /* Analoguous to loadProgramFiles(), but takes string inputs and compiles them
    with loadShaderSource() with size=-1. */
 GLuint loadProgramSources(
-  GLenum type_1, char const *code_1,
-  ... /* Pairs repeat until 0-terminated */);
+    char const *source,
+    GLenum type_1, char const *code_1,
+    ... /* Pairs repeat until 0-terminated */);
 
 } /* namespace azur::gl */
