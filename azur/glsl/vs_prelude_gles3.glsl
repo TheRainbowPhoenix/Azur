@@ -1,6 +1,6 @@
 #version 300 es
 
-#define _GL(expr) expr
-#define _GLES(expr)
+#define _GL(expr)
+#define _GLES(expr) expr
 
 precision mediump float;
