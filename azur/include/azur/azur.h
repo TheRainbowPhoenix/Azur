@@ -75,7 +75,7 @@ void azur_quit(void);
 // Global information
 //---
 
-#ifdef AZUR_TOOLKIT_SDL
+#if AZUR_TOOLKIT_SDL
 #include <SDL2/SDL.h>
 
 /* azur_sdl_window(): Get the current SDL window. */
