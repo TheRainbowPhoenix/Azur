@@ -1,0 +1,14 @@
+---
+title: Azur documentation
+label: @index
+url: /
+---
+
+#output("header"):
+  #center{![](=azurlogo.png)}
+
+# Azur
+
+Index:
+
+- [@tests]

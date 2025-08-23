@@ -3,5 +3,8 @@
 /build-linux
 /build-emscripten
 
+# Generated docs
+/docs/_www
+
 # Editor files
 *.sublime-*

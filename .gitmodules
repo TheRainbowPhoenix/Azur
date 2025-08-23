@@ -7,3 +7,6 @@
 [submodule "gl3w"]
 	path = 3rdparty/gl3w
 	url = https://github.com/skaslev/gl3w
+[submodule "3rdparty/stdoc"]
+	path = 3rdparty/stdoc
+	url = https://github.com/lephe/stdoc.git

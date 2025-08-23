@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset='utf-8'>
+  <link rel='stylesheet' href='{{ global_static("perldoc.css") }}'>
+  <link rel='stylesheet' href='{{ global_static("doc.css") }}'>
+  <title>{{ DOCGEN_TITLE }}</title>
+ </head>
+ <body>
+  <header><div>
+    {% block header %}
+      {{ DOCGEN_FRAGMENT_header | safe }}
+    {% endblock %}
+  </div></header>
+  <article>{{ DOCGEN_ARTICLE | safe }}</article>
+ </body>
+</html>

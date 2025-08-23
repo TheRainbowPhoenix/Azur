@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% import "base.html" as base with context %}
+
+{% block header %}
+  <div class="logoheading">
+    <img src="{{ DOCGEN_LOCAL_STATIC }}/azurlogo.png"><!--<pre> ,"  /\  ", 
+|  _/__\_  |
+ "._`\/'_." </pre>-->
+    <div>
+
+    <div>
+      <b>Documentation of Azur</b><br>
+      <a href="{{ ref('@index') }}" class="gray">Back to index</a>
+    </div>
+  </div>
+
+  {{ DOCGEN_FRAGMENT_header | safe }}
+{% endblock %}
