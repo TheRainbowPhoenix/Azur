@@ -21,12 +21,12 @@
 #pragma once
 #include <azur/defs.h>
 
-#ifdef AZUR_GRAPHICS_OPENGL_3_3
+#if AZUR_GRAPHICS_OPENGL_3_3
 # include <GL/gl3w.h>
 # include <SDL2/SDL_opengl.h>
 #endif /* OpenGL 3.3 */
 
-#ifdef AZUR_GRAPHICS_OPENGL_ES_2_0
+#if AZUR_GRAPHICS_OPENGL_ES_2_0
 # define GL_GLEXT_PROTOTYPES
 # include <SDL2/SDL_opengles2.h>
 
@@ -37,7 +37,7 @@
 # define glIsVertexArray glIsVertexArrayOES
 #endif /* OpenGL ES 2.0 */
 
-#ifdef AZUR_GRAPHICS_OPENGL_ES_3_0
+#if AZUR_GRAPHICS_OPENGL_ES_3_0
 # include <GLES3/gl3.h>
 #endif /* OpenGL ES 3.0 */
 

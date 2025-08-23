@@ -9,7 +9,7 @@
 #define AZUR_VERSION_MINOR @Azur_VERSION_MINOR@
 
 /* Whether this is a debug build (if not, release build obviously). */
-#cmakedefine AZUR_DEBUG
+#cmakedefine01 AZUR_DEBUG
 
 //---
 // In each of the following groups, options are mutually exclusive. Exactly one
@@ -21,44 +21,44 @@
    rather than the platform (since platform doesn't tell that much). */
 
 /* Web browser with emscripten. */
-#cmakedefine AZUR_PLATFORM_EMSCRIPTEN
+#cmakedefine01 AZUR_PLATFORM_EMSCRIPTEN
 /* Generic platform. */
-#cmakedefine AZUR_PLATFORM_GENERIC
+#cmakedefine01 AZUR_PLATFORM_GENERIC
 
 
 /* Toolkit API; for windows, timers, audio, fonts, etc. */
 
 /* SDL2. */
-#cmakedefine AZUR_TOOLKIT_SDL
+#cmakedefine01 AZUR_TOOLKIT_SDL
 /* Native gint drivers on fx-CG. */
-#cmakedefine AZUR_TOOLKIT_GINT
+#cmakedefine01 AZUR_TOOLKIT_GINT
 
 
 /* Graphics API for rendering tasks. */
 
 /* OpenGL 3.3 core (essentially desktop targets). */
-#cmakedefine AZUR_GRAPHICS_OPENGL_3_3
+#cmakedefine01 AZUR_GRAPHICS_OPENGL_3_3
 /* OpenGL ES 2, formerly used for WebGL 1 (now deprecated) */
-#cmakedefine AZUR_GRAPHICS_OPENGL_ES_2_0
+#cmakedefine01 AZUR_GRAPHICS_OPENGL_ES_2_0
 /* WebGL 2-friendly subset of OpenGL ES 3.0 (mobile targets and emscripten). */
-#cmakedefine AZUR_GRAPHICS_OPENGL_ES_3_0
+#cmakedefine01 AZUR_GRAPHICS_OPENGL_ES_3_0
 /* Custom broken rendering engine for the fx-CG running gint. */
-#cmakedefine AZUR_GRAPHICS_GINT_CG
+#cmakedefine01 AZUR_GRAPHICS_GINT_CG
 
 
 /* CPU architecture (mostly useful for optimized SuperH stuff). */
 
 /* Generic/unknown CPU architecture; only C code is used. */
-#cmakedefine AZUR_ARCH_GENERIC
+#cmakedefine01 AZUR_ARCH_GENERIC
 /* SH4AL-DSP for the fx-CG. */
-#cmakedefine AZUR_ARCH_SH4ALDSP
+#cmakedefine01 AZUR_ARCH_SH4ALDSP
 
 
 /* Input/output settings on terminal. */
 
 /* No terminal output entirely. */
-#cmakedefine AZUR_TERMINAL_NONE
+#cmakedefine01 AZUR_TERMINAL_NONE
 /* No formatting or colors. */
-#cmakedefine AZUR_TERMINAL_PLAIN
+#cmakedefine01 AZUR_TERMINAL_PLAIN
 /* Formatting with ANSI escape codes. */
-#cmakedefine AZUR_TERMINAL_ANSI
+#cmakedefine01 AZUR_TERMINAL_ANSI

@@ -21,7 +21,7 @@
 
 namespace libnum::prim {
 
-#ifdef LIBNUM_ARCH_SH4ALDSP
+#if LIBNUM_ARCH_SH4ALDSP
 
 extern int div_i32_i16_i16(int32_t num, int16_t denum);
 

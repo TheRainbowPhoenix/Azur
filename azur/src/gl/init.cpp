@@ -10,7 +10,7 @@
 static SDL_Window *window = NULL;
 static SDL_GLContext glcontext = NULL;
 
-#ifdef AZUR_PLATFORM_EMSCRIPTEN
+#if AZUR_PLATFORM_EMSCRIPTEN
 #include <emscripten/html5.h>
 
 static EM_BOOL fullscreen_callback(int ev, void const *_, void *window0)
@@ -39,7 +39,7 @@ static void enter_fullscreen(SDL_Window *window)
 }
 #endif /* AZUR_PLATFORM_EMSCRIPTEN */
 
-#ifdef AZUR_GRAPHICS_OPENGL_3_3
+#if AZUR_GRAPHICS_OPENGL_3_3
 static void gl_debug_callback(GLenum source, GLenum type, GLuint id,
     GLenum severity, GLsizei length, const GLchar *message, const GLvoid *)
 {
@@ -78,7 +78,7 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
 {
     /* Select the OpenGL profile. This has to come before SDL_Init. */
 
-    #if defined(AZUR_GRAPHICS_OPENGL_3_3)
+    #if AZUR_GRAPHICS_OPENGL_3_3
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
         SDL_GL_CONTEXT_PROFILE_CORE);
@@ -87,14 +87,14 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
     if(dbg)
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
-    #elif defined(AZUR_GRAPHICS_OPENGL_ES_2_0)
+    #elif AZUR_GRAPHICS_OPENGL_ES_2_0
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
         SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
-    #elif defined(AZUR_GRAPHICS_OPENGL_ES_3_0)
+    #elif AZUR_GRAPHICS_OPENGL_ES_3_0
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
         SDL_GL_CONTEXT_PROFILE_ES);
@@ -134,25 +134,25 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
     if(rc < 0)
         azlog(ERROR, "SDL_GL_SetSwapInterval: %s\n", SDL_GetError());
 
-    #ifdef AZUR_GRAPHICS_OPENGL_3_3
+#if AZUR_GRAPHICS_OPENGL_3_3
     rc = gl3wInit();
     if(rc != 0) {
         azlog(FATAL, "gl3wInit: %d\n", rc);
         return 1;
     }
-    #endif
+#endif
 
-    #ifdef AZUR_GRAPHICS_OPENGL_3_3
+#if AZUR_GRAPHICS_OPENGL_3_3
     if(dbg) {
         glEnable(GL_DEBUG_OUTPUT);
         glDebugMessageCallback(gl_debug_callback, nullptr);
     }
-    #endif
+#endif
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-#ifdef AZUR_PLATFORM_EMSCRIPTEN
+#if AZUR_PLATFORM_EMSCRIPTEN
     enter_fullscreen(window);
 #endif
 
@@ -177,7 +177,7 @@ void azur_quit(void)
     glcontext = NULL;
 }
 
-#ifdef AZUR_TOOLKIT_SDL
+#if AZUR_TOOLKIT_SDL
 
 SDL_Window *azur_sdl_window(void)
 {
@@ -196,7 +196,7 @@ static double ml_time = 0.0;
 
 /* In emscripten, callbacks are void/void, vsync is always ON, and the
    mechanism used to generate updates is not a timer. */
-#ifdef AZUR_PLATFORM_EMSCRIPTEN
+#if AZUR_PLATFORM_EMSCRIPTEN
 
 #include <emscripten.h>
 #include <emscripten/html5.h>

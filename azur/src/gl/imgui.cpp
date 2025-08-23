@@ -10,7 +10,7 @@ static bool initialized = false;
 
 bool azur_init_imgui(void)
 {
-#ifdef AZUR_TOOLKIT_GINT
+#if AZUR_TOOLKIT_GINT
     return false;
 #endif
 
@@ -25,11 +25,11 @@ bool azur_init_imgui(void)
         return false;
     }
 
-#if defined(AZUR_GRAPHICS_OPENGL_3_3)
+#if AZUR_GRAPHICS_OPENGL_3_3
     char const *glsl_version = "#version 330";
-#elif defined(AZUR_GRAPHICS_OPENGL_ES_2_0)
+#elif AZUR_GRAPHICS_OPENGL_ES_2_0
     char const *glsl_version = "#version 100";
-#elif defined(AZUR_GRAPHICS_OPENGL_ES_3_0)
+#elif AZUR_GRAPHICS_OPENGL_ES_3_0
     char const *glsl_version = "#version 300 es";
 #endif
 

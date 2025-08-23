@@ -81,20 +81,20 @@ static GLuint compileShader(GLenum type, char const *code, ssize_t size,
     static char const *fs_prelude = NULL;
 
     if(!vs_prelude) {
-        #if defined AZUR_GRAPHICS_OPENGL_ES_2_0
+        #if AZUR_GRAPHICS_OPENGL_ES_2_0
         vs_prelude = azur_glsl__vs_prelude_gles2;
-        #elif defined AZUR_GRAPHICS_OPENGL_ES_3_0
+        #elif AZUR_GRAPHICS_OPENGL_ES_3_0
         vs_prelude = azur_glsl__vs_prelude_gles3;
-        #elif defined AZUR_GRAPHICS_OPENGL_3_3
+        #elif AZUR_GRAPHICS_OPENGL_3_3
         vs_prelude = azur_glsl__vs_prelude_gl3;
         #endif
     }
     if(!fs_prelude) {
-        #if defined AZUR_GRAPHICS_OPENGL_ES_2_0
+        #if AZUR_GRAPHICS_OPENGL_ES_2_0
         fs_prelude = azur_glsl__fs_prelude_gles2;
-        #elif defined AZUR_GRAPHICS_OPENGL_ES_3_0
+        #elif AZUR_GRAPHICS_OPENGL_ES_3_0
         fs_prelude = azur_glsl__fs_prelude_gles3;
-        #elif defined AZUR_GRAPHICS_OPENGL_3_3
+        #elif AZUR_GRAPHICS_OPENGL_3_3
         fs_prelude = azur_glsl__fs_prelude_gl3;
         #endif
     }

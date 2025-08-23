@@ -11,13 +11,13 @@
 
 namespace azur::log {
 
-#ifdef AZUR_DEBUG
+#if AZUR_DEBUG
  static LogLevel levelFilter = LogLevel::DEBUG;
 #else
  static LogLevel levelFilter = LogLevel::INFO;
 #endif
 
-#ifdef AZUR_TERMINAL_ANSI
+#if AZUR_TERMINAL_ANSI
  static LogStyle style = LogStyle::ANSI;
 #else
  static LogStyle style = LogStyle::PLAIN;
