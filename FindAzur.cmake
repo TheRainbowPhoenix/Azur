@@ -176,3 +176,34 @@ endif()
 function(azur_generate_html_template _output)
   file(COPY_FILE "${AZUR_DATA}/assets/app_template.html" "${_output}")
 endfunction()
+
+# Converted assets via a Python script equivalent to xxd -i into a source file
+# and a header. Having a single file is not super elegant but it simplifies the
+# dependencies a lot (it's pulled by source files and the header comes with it,
+# so it's always up-to-date with no manual dependency declarations).
+function(azur_embed_assets)
+  cmake_parse_arguments(EA "" "OUTPUT;NAME;RELATIVE_TO" "" ${ARGN})
+
+  # Check arguments
+  if(NOT DEFINED EA_OUTPUT)
+    message(FATAL_ERROR "azur_embed_assets: OUTPUT is required!")
+  elseif(NOT DEFINED EA_NAME)
+    message(FATAL_ERROR "azur_embed_assets: NAME is required!")
+  elseif(NOT DEFINED EA_RELATIVE_TO)
+    message(FATAL_ERROR "azur_embed_assets: RELATIVE_TO is required!")
+  endif()
+  set(EA_ASSETS ${EA_UNPARSED_ARGUMENTS})
+
+  # Find folder where we're generating the output
+  get_filename_component(EA_FOLDER "${EA_OUTPUT}" DIRECTORY)
+
+  add_custom_command(
+    OUTPUT "${EA_OUTPUT}"
+    COMMAND mkdir -p "${EA_FOLDER}"
+    COMMAND python "${AZUR_DATA}/tools/gen-assets.py"
+                   -o "${EA_OUTPUT}" -n "${EA_NAME}" --
+                   -d "${EA_RELATIVE_TO}" ${EA_ASSETS}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMENT "Embedding assets"
+    DEPENDS ${EA_ASSETS})
+endfunction()

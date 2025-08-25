@@ -5,6 +5,7 @@
 //---------------------------------------------------------------------------//
 
 #include <azur/gl/gl.h>
+#include <azur/resources.h>
 #include <azur/log.h>
 
 #include <stdio.h>
@@ -155,14 +156,21 @@ static GLuint compileShader(GLenum type, char const *code, ssize_t size,
 GLuint compileShaderFile(GLenum type, char const *path)
 {
     size_t size;
-    char *source = load_file(path, &size);
-    if(!source) {
+    char *src_rw = nullptr;
+    char const *src_ro = nullptr;
+
+    if(path && *path == '@')
+        src_ro = (char const *)azur::getResource(path, &size);
+    else
+        src_rw = load_file(path, &size);
+
+    if(!src_ro && !src_rw) {
         azlog(ERROR, "Cannot read '%s': %s\n", path, strerror(errno));
         return 0;
     }
 
-    GLuint id = compileShader(type, source, size, path);
-    delete[] source;
+    GLuint id = compileShader(type, src_ro ? src_ro : src_rw, size, path);
+    delete[] src_rw;
     return id;
 }
 

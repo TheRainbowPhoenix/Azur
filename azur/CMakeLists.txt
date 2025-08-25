@@ -8,7 +8,8 @@
 configure_file(include/azur/config.h.in include/azur/config.h)
 
 set(SOURCES
-  src/log.cpp)
+  src/log.cpp
+  src/resources.cc)
 set(ASSETS)
 
 # SDL/OpenGL rendering
@@ -120,5 +121,6 @@ install(DIRECTORY include/ DESTINATION ${INCDIR} FILES_MATCHING PATTERN "*.h")
 # Generated header: azur/config.h
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/azur/config.h"
   DESTINATION ${INCDIR}/azur)
-# Assets
+# Assets and tools
 install(DIRECTORY assets DESTINATION ${DATADIR})
+install(DIRECTORY tools DESTINATION ${DATADIR})
