@@ -57,6 +57,7 @@ endif()
 # Default install paths
 set(LIBDIR "lib")
 set(INCDIR "include")
+set(DATADIR "share/azur")
 set(MODPATH "lib/cmake")
 
 #---

@@ -128,14 +128,14 @@ static GLuint compileShader(GLenum type, char const *code, ssize_t size,
     glGetShaderiv(id, GL_COMPILE_STATUS, &rc);
     glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_length);
 
-    bool needLogs = (rc == GL_FALSE) || (log_length > 0);
+    bool needLogs = (rc == GL_FALSE) || (log_length > 1);
     if(needLogs) {
         azlog_begin();
         azlog(ERROR, "Shader compilation %s!\n",
             rc == GL_FALSE ? "failed" : "succeeded, but there are logs");
     }
 
-    if(log_length > 0) {
+    if(log_length > 1) {
         GLchar *log = new GLchar[log_length + 1];
         glGetShaderInfoLog(id, log_length, &log_length, log);
         if(log_length > 0) {
@@ -193,14 +193,14 @@ GLuint link(GLuint *shaders, int count)
     glGetProgramiv(prog, GL_LINK_STATUS, &rc);
     glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &log_length);
 
-    bool needLogs = (rc == GL_FALSE) || (log_length > 0);
+    bool needLogs = (rc == GL_FALSE) || (log_length > 1);
     if(needLogs) {
         azlog_begin();
         azlog(ERROR, "Shader link %s!\n",
             rc == GL_FALSE ? "failed" : "succeeded, but there are logs");
     }
 
-    if(log_length > 0) {
+    if(log_length > 1) {
         GLchar *log = new GLchar[log_length + 1];
         glGetProgramInfoLog(prog, log_length, &log_length, log);
         if(log_length > 0) {
@@ -218,6 +218,10 @@ GLuint link(GLuint *shaders, int count)
     for(int i = 0; i < count; i++)
         glDetachShader(prog, shaders[i]);
 
+    if(rc == GL_FALSE) {
+        glDeleteProgram(prog);
+        return 0;
+    }
     return prog;
 }
 

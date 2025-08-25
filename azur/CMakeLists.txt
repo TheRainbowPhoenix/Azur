@@ -120,3 +120,5 @@ install(DIRECTORY include/ DESTINATION ${INCDIR} FILES_MATCHING PATTERN "*.h")
 # Generated header: azur/config.h
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/azur/config.h"
   DESTINATION ${INCDIR}/azur)
+# Assets
+install(DIRECTORY assets DESTINATION ${DATADIR})

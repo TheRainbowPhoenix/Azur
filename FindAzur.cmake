@@ -13,6 +13,7 @@ if(NOT "${FXSDK_PLATFORM_LONG}" STREQUAL "")
 elseif(NOT "${AZUR_PATH}" STREQUAL "")
   set(AZUR_LIB "${AZUR_PATH}/lib/libazur_${AZUR_PLATFORM}.a")
   set(AZUR_INCLUDE "${AZUR_PATH}/include")
+  set(AZUR_DATA "${AZUR_PATH}/share/azur")
 
   if(NOT EXISTS "${AZUR_LIB}")
     message(SEND_ERROR
@@ -21,6 +22,7 @@ elseif(NOT "${AZUR_PATH}" STREQUAL "")
 
   message("(Azur) Found AZUR_PATH_${AZUR_PLATFORM}: ${AZUR_LIB}")
   message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
+  message("(Azur) Additional assets are at: ${AZUR_DATA}")
 else()
   unset(AZUR_PATH)
   find_library(AZUR_PATH "azur_${AZUR_PLATFORM}")
@@ -32,9 +34,11 @@ else()
   else()
     set(AZUR_LIB "${AZUR_PATH}")
     get_filename_component(AZUR_INCLUDE "${AZUR_PATH}/../../include" ABSOLUTE)
+    set(AZUR_DATA "${AZUR_PATH}/share/azur")
 
     message("(Azur) Found Azur at: ${AZUR_LIB}")
     message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
+    message("(Azur) Additional assets are at: ${AZUR_DATA}")
   endif()
 endif()
 
@@ -152,7 +156,9 @@ if("imgui" IN_LIST AZUR_3RDPARTY)
     INTERFACE_LINK_OPTIONS "-Wl,--gc-sections")
 
   if(AZUR_PLATFORM STREQUAL emscripten)
-    target_link_options(Azur::ImGui INTERFACE -sUSE_FREETYPE=1)
+    target_link_options(Azur::ImGui INTERFACE
+      -sUSE_FREETYPE=1
+      -sMIN_WEBGL_VERSION=2)
     target_compile_definitions(Azur::ImGui INTERFACE -DIMGUI_ENABLE_FREETYPE)
     target_include_directories(Azur::ImGui INTERFACE
       "${AZUR_INCLUDE}/azur/imgui/misc/freetype")
@@ -164,3 +170,9 @@ if("imgui" IN_LIST AZUR_3RDPARTY)
     endif()
   endif()
 endif()
+
+# 6. Provide utility functions
+
+function(azur_generate_html_template _output)
+  file(COPY_FILE "${AZUR_DATA}/assets/app_template.html" "${_output}")
+endfunction()
