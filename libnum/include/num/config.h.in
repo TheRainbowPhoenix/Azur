@@ -10,6 +10,6 @@
 /* CPU architecture. */
 
 /* Generic/unknown CPU architecture; only C code is used. */
-#cmakedefine LIBNUM_ARCH_GENERIC
+#cmakedefine01 LIBNUM_ARCH_GENERIC
 /* SH4AL-DSP for the fx-CG. */
-#cmakedefine LIBNUM_ARCH_SH4ALDSP
+#cmakedefine01 LIBNUM_ARCH_SH4ALDSP

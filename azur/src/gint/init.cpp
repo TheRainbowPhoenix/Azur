@@ -4,9 +4,10 @@
 #include <gint/timer.h>
 #include <gint/cpu.h>
 
-int azur_init(char const *title, int width, int height)
+int azur_init(char const *title, int width, int height, bool debug)
 {
     (void)title;
+    (void)debug;
 
     if(width == 396 && height == 224)
         azrp_config_scale(1);
@@ -43,8 +44,8 @@ static int set_flag(volatile int *flag)
 }
 
 int azur_main_loop(
-    void (*render)(void), int render_fps,
-    int (*update)(void), int update_ups,
+    std::function<void(void)> const &render, int render_fps,
+    std::function<int(void)> const &update, int update_ups,
     int flags)
 {
     volatile int render_tick = 1;

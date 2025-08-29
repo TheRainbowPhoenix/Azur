@@ -78,6 +78,7 @@ if(AZUR_PLATFORM STREQUAL gint)
   # Install in the fxSDK sysroot
   set(LIBDIR "${FXSDK_LIB}")
   set(INCDIR "${FXSDK_INCLUDE}")
+  set(DATADIR "${FXSDK_SYSROOT}/share/azur")
   set(MODPATH "${FXSDK_CMAKE_MODULE_PATH}")
 endif()
 
