@@ -1,5 +1,6 @@
 #include <num/num.h>
 #include <stdio.h>
+#include <inttypes.h>
 using namespace libnum;
 
 /* Digits of the decimal part, from most to least significant. Returns the
@@ -22,6 +23,7 @@ static int decimalDigitsBase(char *str, T x)
 
 template<typename T> requires(is_num<T>)
 static int decimalDigits(char *str, T x) {
+    (void)str;
     return 0;
 }
 template<> int decimalDigits<num8>(char *str, num8 x) {
@@ -61,7 +63,7 @@ static int toString(char *str, T x)
         integral_part = -integral_part - (x.frac().v != 0);
     }
 
-    n += sprintf(str + n, "%lld", integral_part);
+    n += sprintf(str + n, "%" PRId64, integral_part);
     if(x.frac().v != 0) {
         str[n++] = '.';
         n += decimalDigits<T>(str + n, x);
