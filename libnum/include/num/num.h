@@ -78,9 +78,9 @@ struct num8
     inline constexpr num8(): v(0) {}
     /* Convert from int; pretty useless, but for completeness. */
     inline constexpr num8(int): v(0) {}
-    /* Convert from float */
+    inline constexpr num8(unsigned int): v(0) {}
+    /* Convert from float/double */
     inline constexpr num8(float f): v(f * 256) {}
-    /* Convert from double */
     inline constexpr num8(double d): v(d * 256) {}
     /* Convert from other num types */
     inline constexpr explicit num8(num16 n);
@@ -184,9 +184,9 @@ struct num16
     inline constexpr num16(): v(0) {}
     /* Convert from int */
     inline constexpr num16(int i): v(i * 256) {}
-    /* Convert from float */
+    inline constexpr num16(unsigned int u): v(u * 256) {}
+    /* Convert from float/double */
     inline constexpr num16(float f): v(f * 256) {}
-    /* Convert from double */
     inline constexpr num16(double d): v(d * 256) {}
     /* Convert from other num types */
     inline constexpr explicit num16(num8 n);
@@ -304,9 +304,9 @@ struct num32
     inline constexpr num32(): v(0) {}
     /* Convert from int */
     inline constexpr num32(int i): v(i * 65536) {}
-    /* Convert from float */
+    inline constexpr num32(unsigned int u): v(u * 65536) {}
+    /* Convert from float/double */
     inline constexpr num32(float f): v(f * 65536) {}
-    /* Convert from double */
     inline constexpr num32(double d): v(d * 65536) {}
     /* Convert from other num types */
     inline constexpr explicit num32(num8 n);
@@ -424,9 +424,9 @@ struct num64
     inline constexpr num64(): v(0) {}
     /* Convert from int */
     inline constexpr num64(int i): v((int64_t)i * 4294967296) {}
-    /* Convert from float */
+    inline constexpr num64(unsigned int u): v((int64_t)u * 65536) {}
+    /* Convert from float/double */
     inline constexpr num64(float f): v(f * 4294967296) {}
-    /* Convert from double */
     inline constexpr num64(double d): v(d * 4294967296) {}
     /* Convert from other num types */
     inline constexpr explicit num64(num8 n);
