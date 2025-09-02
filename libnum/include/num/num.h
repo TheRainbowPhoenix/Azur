@@ -619,6 +619,26 @@ inline constexpr T clamp(T const &val, T const &lower, T const &upper)
 /* Arithmetic with integers */
 
 template<typename T> requires(is_num<T>)
+inline constexpr T operator+(int n, T const &x) {
+    return T(n) + x;
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr T operator+(T const &x, int n) {
+    return x + T(n);
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr T operator-(int n, T const &x) {
+    return T(n) - x;
+}
+
+template<typename T> requires(is_num<T>)
+inline constexpr T operator-(T const &x, int n) {
+    return x - T(n);
+}
+
+template<typename T> requires(is_num<T>)
 inline constexpr T operator*(int n, T const &x) {
     T r;
     r.v = n * x.v;
