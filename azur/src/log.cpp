@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <azur/ecs.h>
 
 #if AZUR_PLATFORM_EMSCRIPTEN
 # include <emscripten.h>
