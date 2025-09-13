@@ -18,6 +18,8 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
     src/gl/init.cpp
     src/gl/imgui.cpp
     src/gl/util.cpp
+    src/stb/stb_image.c
+    src/stb/stb_image_write.c
     "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c")
 
   list(APPEND ASSETS
@@ -37,6 +39,10 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Generating a C file with prebuilt shaders"
     DEPENDS gen_glsl.py ${ASSETS})
+
+  # stb_image_write documents that it assumes no strict aliasing rule
+  set_source_files_properties(src/stb/stb_image_write.c APPEND
+    PROPERTY COMPILE_OPTIONS -fnostrict-aliasing)
 endif()
 
 if(AZUR_TOOLKIT_GINT)
@@ -104,6 +110,7 @@ endif()
 
 if(NOT AZUR_PLATFORM STREQUAL gint)
   target_link_libraries(azur PUBLIC imgui)
+  target_include_directories(azur PRIVATE "../3rdparty/stb/")
 endif()
 
 target_include_directories(azur PRIVATE
@@ -120,6 +127,11 @@ install(TARGETS azur DESTINATION ${LIBDIR})
 install(DIRECTORY include/ DESTINATION ${INCDIR} FILES_MATCHING PATTERN "*.h")
 # Generated header: azur/config.h
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/azur/config.h"
+  DESTINATION ${INCDIR}/azur)
+# Headers: azur/stb_*.h
+install(FILES
+  ../3rdparty/stb/stb_image.h
+  ../3rdparty/stb/stb_image_write.h
   DESTINATION ${INCDIR}/azur)
 # Assets and tools
 install(DIRECTORY assets DESTINATION ${DATADIR})

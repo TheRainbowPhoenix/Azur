@@ -10,3 +10,6 @@
 [submodule "3rdparty/stdoc"]
 	path = 3rdparty/stdoc
 	url = https://github.com/lephe/stdoc.git
+[submodule "3rdparty/stb"]
+	path = 3rdparty/stb
+	url = https://github.com/nothings/stb.git
