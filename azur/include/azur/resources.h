@@ -5,6 +5,7 @@
 //---------------------------------------------------------------------------//
 // azur.resources: Access to embedded resources
 
+#pragma once
 #include <azur/defs.h>
 
 namespace azur {
