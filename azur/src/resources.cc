@@ -10,7 +10,7 @@
 namespace azur {
 
 // TODO: Avoid global constructors for resource group registrations
-using GroupStorage = std::map<std::string, ResourceGroup const *>;
+using GroupStorage = map<string, ResourceGroup const *>;
 static GroupStorage *resourceGroups = nullptr;
 
 void registerResourceGroup(char const *name, ResourceGroup const &group)
@@ -35,8 +35,8 @@ void const *getResource(char const *prefixedPath, size_t *size)
     if(!colon)
         return nullptr;
 
-    std::string groupName(p, colon - p);
-    std::string path(colon + 1);
+    string groupName(p, colon - p);
+    string path(colon + 1);
 
     auto it = resourceGroups->find(groupName);
     if(it == resourceGroups->end())

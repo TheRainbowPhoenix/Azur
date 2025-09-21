@@ -18,8 +18,6 @@
 #pragma once
 #include <azur/defs.h>
 #include <stdio.h>
-#include <stdarg.h>
-#include <string>
 
 /* Quick macros that insert parameters automatically. */
 #define azlog(LEVEL, FMT, ...) \
@@ -138,20 +136,20 @@ public:
 
 private:
     /* String accumulated so for for messages in a group. */
-    std::string m_groupString;
+    string m_groupString;
     /* Size of the current group; -1 when not in a group. */
     int m_groupSize = -1;
     /* Log level of the current group; undefined when not in a group. */
     LogLevel m_groupLevel;
     /* Prefix string of the current group; empty when not in a group. */
-    std::string m_groupPrefix;
+    string m_groupPrefix;
 
     /* Whether we're currently in a group. */
     bool inGroup() { return m_groupSize >= 0; }
     /* Prefix string for a level and location. */
-    std::string prefixString(LogLevel level, LogLocation const &loc);
+    string prefixString(LogLevel level, LogLocation const &loc);
     /* Output to console. */
-    void output(LogLevel level, std::string const &prefix, char const *data);
+    void output(LogLevel level, string const &prefix, char const *data);
 };
 
 #endif

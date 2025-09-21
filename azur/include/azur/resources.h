@@ -6,8 +6,6 @@
 // azur.resources: Access to embedded resources
 
 #include <azur/defs.h>
-#include <map>
-#include <string>
 
 namespace azur {
 
@@ -18,7 +16,7 @@ struct ResourceGroupEntry {
 };
 
 /* Index for a resource group */
-using ResourceGroup = std::map<std::string, ResourceGroupEntry>;
+using ResourceGroup = map<string, ResourceGroupEntry>;
 
 /* Register a resource group (shared globally). This is normally called by
    groups in auto-generates code, never by users. */
