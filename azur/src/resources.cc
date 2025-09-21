@@ -5,6 +5,7 @@
 //---------------------------------------------------------------------------//
 
 #include <azur/resources.h>
+#include <azur/log.h>
 #include <string.h>
 
 namespace azur {
@@ -52,6 +53,30 @@ void const *getResource(char const *prefixedPath, size_t *size)
     if(size)
         *size = RGE.size;
     return RGE.data;
+}
+
+void dumpAllResources()
+{
+    if(!resourceGroups || !resourceGroups->size()) {
+        azlog(DEBUG, "No registered resource groups\n");
+        return;
+    }
+
+    for(auto const &it: *resourceGroups) {
+        azlog(DEBUG, "Resource group '%s':\n", it.first.c_str());
+        ResourceGroup const * RG = it.second;
+
+        if(!RG->size()) {
+            azlog(DEBUG, "  No resources in group\n");
+            continue;
+        }
+
+        for(auto const &it2: *RG) {
+            ResourceGroupEntry const &RGE = it2.second;
+            azlog(DEBUG, "  '%s': %p (%zu)\n", it2.first.c_str(),
+                RGE.data, RGE.size);
+        }
+    }
 }
 
 } /* namespace azur */

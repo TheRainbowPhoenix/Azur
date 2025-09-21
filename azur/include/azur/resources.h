@@ -26,4 +26,7 @@ void registerResourceGroup(char const *name, ResourceGroup const &group);
 /* Get a resource using the identifier "@name:path". */
 void const *getResource(char const *prefixedPath, size_t *size);
 
+/* Debug function: dump all resources in log. */
+void dumpAllResources();
+
 } /* namespace azur */
