@@ -11,4 +11,6 @@ url: /
 
 Index:
 
-- [@tests]
+- [@resources]
+- [@libraries]
+- [@opengl]
