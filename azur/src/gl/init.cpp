@@ -73,8 +73,11 @@ static void gl_debug_callback(GLenum source, GLenum type, GLuint id,
 }
 #endif /* AZUR_GRAPHICS_OPENGL_3_3 */
 
+extern void azur_registerResourceGroup_azur();
 int azur_init(char const *title, int window_width, int window_height, bool dbg)
 {
+    azur_registerResourceGroup_azur();
+
     /* Select the OpenGL profile. This has to come before SDL_Init. */
 
     #if AZUR_GRAPHICS_OPENGL_3_3

@@ -6,6 +6,7 @@
 # Main library build system
 
 configure_file(include/azur/config.h.in include/azur/config.h)
+set(AUTOGEN "${CMAKE_CURRENT_BINARY_DIR}/autogen")
 
 set(SOURCES
   src/log.cpp
@@ -20,7 +21,8 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
     src/gl/util.cpp
     src/stb/stb_image.c
     src/stb/stb_image_write.c
-    "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c")
+    "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c"
+    "${AUTOGEN}/assets.cc")
 
   list(APPEND ASSETS
     glsl/vs_prelude_gles2.glsl
@@ -39,6 +41,18 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Generating a C file with prebuilt shaders"
     DEPENDS gen_glsl.py ${ASSETS})
+
+  # azur_embed_assets(), but manually, since we haven't installed yet
+  add_custom_command(
+    OUTPUT "${AUTOGEN}/assets.cc"
+    COMMAND mkdir -p "${AUTOGEN}"
+    COMMAND python "tools/gen-assets.py"
+                   -o "${AUTOGEN}/assets.cc" -n "azur" --allow-reserved-names
+                   -i "azur_registerResourceGroup_azur"
+                   -- -d "." ${ASSETS}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMENT "Embedding assets"
+    DEPENDS ${ASSETS})
 
   # stb_image_write documents that it assumes no strict aliasing rule
   set_source_files_properties(src/stb/stb_image_write.c APPEND

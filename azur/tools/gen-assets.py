@@ -19,6 +19,7 @@ Generates an asset group into a C++ file for one or more files or folders.
 Options:
   -o <OUTPUT>     Output file [-]
   -n <NAME>       Asset group name; should really be given [test]
+  -i <NAME>       Provide init function to be called instead of constructor
 
 Inputs (must come after "--"):
   -d <FOLDER>     Interpret incoming paths relative to this folder
@@ -39,12 +40,19 @@ def C_string(s: str) -> str:
     s = s.encode("unicode_escape").replace(b'"', b'\\"').decode("ascii")
     return '"' + s + '"'
 
-def is_valid_name(name: str) -> bool:
-    if name in ["azur"]:
+def is_valid_name(name: str, allow_reserved: bool) -> bool:
+    # "azur" or that followed by a non-letter, e.g. "azur.sth" is reserved
+    if not allow_reserved and re.match(r"^azur($|\W)", name):
         print(f"error: asset group name {name!r} is reserved")
         return False
     if not re.fullmatch(r'[a-zA-Z_][a-zA-Z0-9_]*', name):
         print(f"error: asset group name {name!r} is not a valid C identifier")
+        return False
+    return True
+
+def is_valid_ident(ident: str) -> bool:
+    if not re.fullmatch(r'[a-zA-Z_][a-zA-Z0-9_]*', ident):
+        print(f"error: {ident!r} is not a valid C identifier")
         return False
     return True
 
@@ -65,10 +73,15 @@ def write_index(fp, index: list[tuple[str, int, int]]) -> None:
         fp.write(f"  {{{path_str}, {{__file_{id}, {size}}}}},\n")
     fp.write("};\n\n")
 
-def write_registration(fp, group_name: str) -> None:
+def write_registration(fp, group_name: str, init_function: str | None) -> None:
     group_name_str = C_string(group_name)
-    fp.write("__attribute__((constructor))\n")
-    fp.write("static void __register() {\n");
+    if init_function is not None:
+        # Explicit init function
+        fp.write(f"void {init_function}() {{\n")
+    else:
+        # Constructor
+        fp.write("__attribute__((constructor))\n")
+        fp.write("static void __register() {\n")
     fp.write(f"  azur::registerResourceGroup({group_name_str}, __index);\n")
     fp.write("}\n")
 
@@ -76,7 +89,8 @@ def write_registration(fp, group_name: str) -> None:
 
 def parse_cli_args():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "o:n:", ["help"])
+        opts, args = getopt.getopt(sys.argv[1:], "o:n:i:",
+            ["help", "allow-reserved-names"])
     except getopt.GetoptError as e:
         print("error:", e, file=sys.stderr)
         print(f"Try '{sys.argv[0]} --help' for more information.")
@@ -92,8 +106,12 @@ def main(argv):
     opts, args = parse_cli_args()
     output = opts.get("-o", "-")
     group_name = opts.get("-n", "test")
+    init_function = opts.get("-i", None)
+    allow_reserved = "--allow-reserved-names" in opts
 
-    if not is_valid_name(group_name):
+    if not is_valid_name(group_name, allow_reserved):
+        sys.exit(1)
+    if init_function is not None and not is_valid_ident(init_function):
         sys.exit(1)
 
     index = []
@@ -126,7 +144,7 @@ def main(argv):
             i += 1
 
         write_index(fp, index)
-        write_registration(fp, group_name)
+        write_registration(fp, group_name, init_function)
 
     return 0
 
