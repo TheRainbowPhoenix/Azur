@@ -137,6 +137,12 @@ public:
     void bindVertexAttribute(glm::ivec3 Vertex::*x, GLuint id);
     template<typename Vertex>
     void bindVertexAttribute(glm::ivec4 Vertex::*x, GLuint id);
+    template<typename Vertex>
+    void bindVertexAttribute(glm::uvec2 Vertex::*x, GLuint id);
+    template<typename Vertex>
+    void bindVertexAttribute(glm::uvec3 Vertex::*x, GLuint id);
+    template<typename Vertex>
+    void bindVertexAttribute(glm::uvec4 Vertex::*x, GLuint id);
 
     //=== Initialization =====================================================//
 
@@ -239,6 +245,21 @@ void Program::bindVertexAttribute(glm::ivec3 Vertex::*x, GLuint id) {
 template<typename Vertex>
 void Program::bindVertexAttribute(glm::ivec4 Vertex::*x, GLuint id) {
     bindVertexAttributeInt(x, 4, GL_INT, id);
+}
+
+template<typename Vertex>
+void Program::bindVertexAttribute(glm::uvec2 Vertex::*x, GLuint id) {
+    bindVertexAttributeInt(x, 2, GL_UNSIGNED_INT, id);
+}
+
+template<typename Vertex>
+void Program::bindVertexAttribute(glm::uvec3 Vertex::*x, GLuint id) {
+    bindVertexAttributeInt(x, 3, GL_UNSIGNED_INT, id);
+}
+
+template<typename Vertex>
+void Program::bindVertexAttribute(glm::uvec4 Vertex::*x, GLuint id) {
+    bindVertexAttributeInt(x, 4, GL_UNSIGNED_INT, id);
 }
 
 } /* namespace azur::gl */
