@@ -18,6 +18,7 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
   list(APPEND SOURCES
     src/gl/init.cpp
     src/gl/imgui.cpp
+    src/gl/program.cc
     src/gl/util.cpp
     src/stb/stb_image.c
     src/stb/stb_image_write.c
