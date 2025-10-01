@@ -175,8 +175,9 @@ endif()
 
 # 6. Provide utility functions
 
-function(azur_generate_html_template _output)
-  file(COPY_FILE "${AZUR_DATA}/assets/app_template.html" "${_output}")
+function(azur_generate_html_template _output _js)
+  set(AZUR_APP_TEMPLATE_JS ${_js})
+  configure_file("${AZUR_DATA}/assets/app_template.html" "${_output}" @ONLY)
 endfunction()
 
 # Converted assets via a Python script equivalent to xxd -i into a source file
