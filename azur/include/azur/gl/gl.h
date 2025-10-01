@@ -3,20 +3,7 @@
 // |  _/__\_  |   Designed by Lephe' and the Planète Casio community.        //
 //  "._`\/'_."    License: MIT <https://opensource.org/licenses/MIT>         //
 //---------------------------------------------------------------------------//
-// azur.gl.gl: OpenGL 3.3 / OpenGL ES 2.0 compatibility and utilities
-//
-// This header is specific to OpenGL targets. It provides helpers for some
-// degree of compatibility between OpenGL ES 2.0 (with some extensions) and
-// OpenGL 3.3. We always use OpenGL 3.3 as the reference and try to expose
-// everything as if we are running OpenGL 3.3 on every platform.
-//
-// This header also provides utility functions to load and compile shaders.
-// Azur provides a header for all shader files, which includes the `#version`
-// string, modern keywords on OpenGL ES 2.0 (in/out/layout), and two macros
-// _GL() and _GLES() that expand to their argument on the corresponding
-// platform and nothing otherwise, for when differences in GLSL aren't easily
-// fixable by preprocessor. See glsl/prelude*.glsl for details.
-//---
+// azur.gl.gl: OpenGL 3.3 / OpenGL ES 3.0 compatibility and utilities
 
 #pragma once
 #include <azur/defs.h>

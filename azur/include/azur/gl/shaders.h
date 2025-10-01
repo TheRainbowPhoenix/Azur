@@ -46,6 +46,7 @@
 
 #pragma once
 #include <azur/gl/gl.h>
+#include <azur/resources.h>
 #include <azur/log.h>
 #include <glm/glm.hpp>
 #include <string.h>
@@ -145,6 +146,10 @@ public:
     void bindVertexAttribute(glm::vec4 VertexAttr::*x, GLuint id);
     void bindVertexAttribute(u8        VertexAttr::*x, GLuint id);
     void bindVertexAttribute(int       VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(uint      VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(glm::ivec2 VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(glm::ivec3 VertexAttr::*x, GLuint id);
+    void bindVertexAttribute(glm::ivec4 VertexAttr::*x, GLuint id);
 
     /* Set uniforms. */
     void setUniform(char const *name, float f);
@@ -262,12 +267,22 @@ bool ShaderProgram<T>::addSourceFile(
     GLuint type, std::string const &file)
 {
     extern char *load_file(char const *, size_t *);
-    char *data = load_file(file.c_str(), nullptr);
-    if(!data)
-        return false;
+    size_t size;
+    char *src_rw = nullptr;
+    char const *src_ro = nullptr;
 
-    m_code[type] += data;
-    delete[] data;
+    if(file.size() && file[0] == '@')
+        src_ro = (char const *)azur::getResource(file.c_str(), &size);
+    else
+        src_rw = load_file(file.c_str(), &size);
+
+    if(!src_ro && !src_rw) {
+        azlog(ERROR, "Cannot read '%s': %s\n", file.c_str(), strerror(errno));
+        return false;
+    }
+
+    m_code[type] += std::string(src_ro ? src_ro : src_rw, size);
+    delete[] src_rw;
     return true;
 }
 
@@ -330,9 +345,9 @@ bool ShaderProgram<T>::link()
         GLchar *log = new GLchar[log_length + 1];
         glGetProgramInfoLog(m_prog, log_length, &log_length, log);
         if(log_length > 0) {
-            azlogc(ERROR, "%s", log);
+            azlog(ERROR, "%s", log);
             if(log[log_length - 1] != '\n')
-                azlogc(ERROR, "\n");
+                azlog(ERROR, "\n");
         }
         delete[] log;
     }
@@ -396,6 +411,30 @@ template<typename T>
 void ShaderProgram<T>::bindVertexAttribute(int T::*x, GLuint id)
 {
     bindVertexAttributeInt(x, 1, GL_INT, id);
+}
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(uint T::*x, GLuint id)
+{
+    bindVertexAttributeInt(x, 1, GL_UNSIGNED_INT, id);
+}
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(glm::ivec2 T::*x, GLuint id)
+{
+    bindVertexAttributeInt(x, 2, GL_UNSIGNED_INT, id);
+}
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(glm::ivec3 T::*x, GLuint id)
+{
+    bindVertexAttributeInt(x, 3, GL_UNSIGNED_INT, id);
+}
+
+template<typename T>
+void ShaderProgram<T>::bindVertexAttribute(glm::ivec4 T::*x, GLuint id)
+{
+    bindVertexAttributeInt(x, 4, GL_UNSIGNED_INT, id);
 }
 
 template<typename T>

@@ -48,6 +48,9 @@ static void gl_debug_callback(GLenum source, GLenum type, GLuint id,
     (void)id;
     (void)length;
 
+    if(severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+        return;
+
     if(source == GL_DEBUG_SOURCE_API)               source_str = "API";
     if(source == GL_DEBUG_SOURCE_WINDOW_SYSTEM)     source_str = "WM";
     if(source == GL_DEBUG_SOURCE_SHADER_COMPILER)   source_str = "Compiler";
