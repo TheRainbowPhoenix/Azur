@@ -22,6 +22,8 @@
 
 /* Web browser with emscripten. */
 #cmakedefine01 AZUR_PLATFORM_EMSCRIPTEN
+/* Linux, for POSIX API etc. */
+#cmakedefine01 AZUR_PLATFORM_LINUX
 /* Generic platform. */
 #cmakedefine01 AZUR_PLATFORM_GENERIC
 
