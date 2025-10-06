@@ -58,6 +58,9 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
   # stb_image_write documents that it assumes no strict aliasing rule
   set_source_files_properties(src/stb/stb_image_write.c APPEND
     PROPERTY COMPILE_OPTIONS -fnostrict-aliasing)
+
+  # TODO: Include GLM through an interface target
+  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty/glm")
 endif()
 
 if(AZUR_TOOLKIT_GINT)
