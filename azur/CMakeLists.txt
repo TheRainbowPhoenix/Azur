@@ -19,6 +19,8 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
     src/gl/init.cpp
     src/gl/imgui.cpp
     src/gl/program.cc
+    src/gl/surface.cc
+    src/gl/texture.cc
     src/gl/util.cpp
     src/stb/stb_image.c
     src/stb/stb_image_write.c

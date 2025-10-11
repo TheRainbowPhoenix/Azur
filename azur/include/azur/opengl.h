@@ -49,6 +49,214 @@ struct Resource
 };
 
 
+//=== Textures (GPU-side) and surfaces (CPU-side) ============================//
+
+/* OpenGL texture format. This defines the way texture data is stored in the
+   GPU memory. The set of formats is enumerated, and this structure tracks
+   information about each of them.
+
+   Of particular interest is how can image data can be loaded into the texture.
+   Only data with the right number of channels is allowed, and there might be
+   multiple allowed pixel value representations, though often just one. */
+struct TextureFormat
+{
+    /* Internal storage format for the texture. */
+    GLuint internalFormat;
+    /* Number of channels */
+    uint channelCount() const;
+
+    /* Single allowed input image format for loading into the texture. */
+    GLuint allowedFormat;
+    /* Valid pixel value types. */
+    uint allowedTypeCount() const;
+    GLuint allowedTypes[3];
+};
+
+TextureFormat const*getTextureFormatInfo(GLuint internalFormat);
+
+uint channelsInImageFormat(GLuint format);
+uint bytesInImageType(GLuint type);
+
+class Surface
+{
+public:
+    /* The default state is no format, no type, no data and 0/0 size. */
+    Surface() = default;
+    ~Surface() { reset(); }
+    /* Reset to the default state and free the data if owned. */
+    // TODO: Surface: data should have a proper destructor: not always free()!
+    void reset();
+
+    //=== Constructing surfaces ==============================================//
+
+    static Surface *loadFromImageData(void const *buf, size_t size);
+    static Surface *loadFromImageFile(char const *path);
+    static Surface *loadFromResource(char const *resource);
+
+    //=== Access to surface metadata and data ================================//
+
+    /* Access format and dimensions */
+    GLuint format() const { return m_format; }
+    GLuint type() const { return m_type; }
+    uint width() const { return m_width; }
+    uint height() const { return m_height; }
+    /* Distance between two rows in storage, expressed in pixels */
+    uint stride() const { return m_stride; }
+    /* Number of channels (stored interleaved for each pixel) */
+    uint channelCount() const;
+    /* Number of bytes per channel value */
+    int bytesPerValue() const;
+    /* Access to raw data */
+    void *data() { return m_data; }
+    void const *data() const { return m_data; }
+
+    // TODO: Surface: sub-surface referencing
+
+    //=== CPU rendering on surfaces ==========================================//
+    // TODO: Basic Surface drawing API for experimenting and fallbacks
+
+private:
+    static Surface *loadFromSTBi(
+        u8 *data, int width, int height, int n, bool integer=false);
+
+     GLuint m_format = 0;
+     GLuint m_type = 0;
+
+     uint m_width = 0;
+     uint m_height = 0;
+     uint m_stride = 0;
+
+     void *m_data = nullptr;
+     bool m_ownsData = false;
+
+};
+
+class Texture
+{
+public:
+    /* The default state is no texture and an empty name. */
+    Texture(GLuint target) { m_target = target; }
+    ~Texture() { reset(); }
+
+    /* Reset to the default state. This frees all OpenGL state and all
+       remembered texture data. */
+    virtual void reset();
+
+    /* Generate a new fresh name for this texture
+       TODO: Find a way to benefit from glGenTextures(). Ideally this should
+             be paired with a glDeleteTextures() in destructor (trickier). */
+    void generateName();
+    /* Whether this holds a valid, initialized texture. */
+    bool isValid() const { return m_name != 0; }
+
+    /* Bind the texture to the associated target in the *current* active
+       texture unit. The caller is responsible for switching texture units! */
+    void bind() const;
+
+    /* Get the internal storage format */
+    GLuint format() const { return m_internalFormat; }
+    /* Get the texture target (type of texture) */
+    GLuint target() const { return m_target; }
+
+    /* Dimensions */
+    uint width() const { return m_size.x; }
+    uint height() const { return m_size.y; }
+    uint depth() const { return m_size.z; }
+    glm::ivec3 size() const { return m_size; }
+    /* Size of the internal GPU storage */
+    glm::ivec3 storageSize() const { return m_allocSize; }
+
+    /* Check whether a given format/type input image can be loaded into this
+       texture. The format describes color components (`GL_RED`, `GL_RGB`,
+       `GL_ALPHA`, etc), and there'll only ever be one that's compatible with
+       the texture's internal storage format. The type is usually the type of
+       a single channel value (`GL_UNSIGNED_BYTE`, `GL_FLOAT`) except for non-
+       conventional arrangements setups were the value describes all channels
+       at once (`GL_UNSIGNED_SHORT_5_6_5`). If `error` is true, an error
+       message will be printed in case of mismatch. */
+    bool isCompatibleWith(GLuint format, GLuint type, bool error=false);
+
+protected:
+    GLuint m_target;
+    Resource<GLuint> m_name = 0;
+
+    /* Internal storage format for texture pixels */
+    GLuint m_internalFormat = 0;
+    /* Dimensions of the data */
+    glm::ivec3 m_size {0, 0, 0};
+    /* Dimensions of the allocation (might be rounded up to a power of 2) */
+    glm::ivec3 m_allocSize {0, 0, 0};
+
+    /* Next power of two (going up). 0 maps to 0. */
+    static uint nextPowerOfTwo(uint n);
+    /* Conditionally round to powers of two on all three axes. */
+    static glm::ivec3 roundSize(
+        glm::ivec3 size, bool roundX, bool roundY, bool roundZ);
+    /* Returns the "natural" (non-converting) input type for a given internal
+       format. This is useful in calls to texImage* with NULL data, as the API
+       for some reason requires a valid type even though there's no input. */
+    static GLuint naturalInputTypeFor(GLuint internalFormat);
+    /* Returns the only valid input format for a given internal format. */
+    static GLuint inputFormatFor(GLuint internalFormat);
+};
+
+struct Texture2D: Texture
+{
+    Texture2D(): Texture(GL_TEXTURE_2D) {}
+
+    /* [When bound]
+       Set the texture's format and size, reallocating GPU memory as needed.
+       `internalFormat` specifies how pixels are represented in the GPU memory.
+       This function is idempotent. If `round` is set (enabled by default), the
+       size is rounded up to a power of 2, which is usually faster and can help
+       reducing the number of allocations. */
+    void setFormat(
+        GLuint internalFormat, uint width, uint height, bool round=true);
+
+    // TODO: Texture load functions: account for stride
+
+    /* [When bound]
+       Load data into the texture. The input is specified by 4 parameters:
+       * `data` is the pointer to raw pixel data;
+       * `format` specifies the set of channels for each pixel;
+       * `type` the value type for each channel for each pixel (or in the case
+         of unusual formats the type of a pixel value containing all channels);
+       * `stride` is the distance between two lines, in pixels.
+
+       Where in the texture we load is given by the mipmap level and a
+       sub-rectangle of the image.
+
+       Fails and returns false if the format/type of the input isn't compatible
+       with the texture format (with error log).
+       TODO: Doesn't perform clipping yet! */
+    bool loadData(
+        void const *data, GLuint format, GLuint type, int stride,
+        int level, rect<int> dstRect={});
+    /* [When bound] Load data from a surface. */
+    bool loadData(Surface const &S, int level, rect<int> dstRect={});
+};
+
+struct Texture2DArray: Texture
+{
+    Texture2DArray(): Texture(GL_TEXTURE_2D_ARRAY) {}
+    void reset() override;
+
+    /* [When bound]
+       Set the texture's format and size. If powerOfTwo is set, the width and
+       height are rounded up to a power of 2.*/
+    void setFormat(
+        GLuint internalFormat, uint width, uint height, uint layerCount,
+        bool round=true);
+
+    /* [When bound] Load data into a layer. */
+    bool loadLayerData(
+        void const *data, GLuint format, GLuint type, int stride,
+        uint layer, int level, rect<int> dstRect={});
+    /* [When bound] Load data into a layer from a surface. */
+    bool loadLayerData(
+        Surface const &S, uint layer, int level, rect<int> dstRect={});
+};
+
 //=== Shaders ================================================================//
 
 class ProgramSource;
