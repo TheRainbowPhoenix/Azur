@@ -54,3 +54,10 @@ typedef int64_t i64;
 using std::string, std::vector, std::map;
 #endif
 
+/* Import common numerical types for libnum */
+#ifdef __cplusplus
+#include <num/num.h>
+#include <num/vec.h>
+#include <num/rect.h>
+using namespace libnum;
+#endif
