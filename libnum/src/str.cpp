@@ -1,4 +1,5 @@
 #include <num/num.h>
+#include <num/rect.h>
 #include <stdio.h>
 #include <inttypes.h>
 using namespace libnum;
