@@ -208,6 +208,12 @@ glm::ivec3 Texture::roundSize(
     return size;
 }
 
+void Texture::setSwizzleMask(GLint r, GLint g, GLint b, GLint a)
+{
+    GLint mask[4] = { r, g, b, a };
+    glTexParameteriv(m_target, GL_TEXTURE_SWIZZLE_RGBA, mask);
+}
+
 bool Texture::isCompatibleWith(GLuint format, GLuint type, bool error)
 {
     TextureFormat const *TF = getTextureFormatInfo(m_internalFormat);

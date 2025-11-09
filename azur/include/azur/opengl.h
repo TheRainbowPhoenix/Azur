@@ -166,6 +166,10 @@ public:
     /* Size of the internal GPU storage */
     glm::ivec3 storageSize() const { return m_allocSize; }
 
+    /* [When bound]
+       Set the texture's swizzle mask. */
+    void setSwizzleMask(GLint r, GLint g, GLint b, GLint a);
+
     /* Check whether a given format/type input image can be loaded into this
        texture. The format describes color components (`GL_RED`, `GL_RGB`,
        `GL_ALPHA`, etc), and there'll only ever be one that's compatible with
