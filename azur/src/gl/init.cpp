@@ -135,10 +135,6 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
     }
     SDL_GL_MakeCurrent(window, glcontext);
 
-    rc = SDL_GL_SetSwapInterval(0);
-    if(rc < 0)
-        azlog(ERROR, "SDL_GL_SetSwapInterval: %s\n", SDL_GetError());
-
 #if AZUR_GRAPHICS_OPENGL_3_3
     rc = gl3wInit();
     if(rc != 0) {
@@ -252,13 +248,13 @@ int azur_main_loop(
 
     if(!(flags & AZUR_MAIN_LOOP_TIED)) {
         update_int = &update;
+        /* Setting the infinite loop to true throws an exception which prevents
+           this function from returning after starting the loop. */
         emscripten_set_main_loop(update_void, update_ups, true);
     }
     else {
-        /* Even if no update is requested, we want emscripten to simulate an
-           infinite loop, as it is needed for Dear ImGui to work due to
-           threading considerations */
-        emscripten_set_main_loop(nop, 1, true);
+        /* Block this function from returning and leave the RAF loop alone. */
+        emscripten_throw_number(0.0);
     }
 
     return 0;
