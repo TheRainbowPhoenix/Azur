@@ -210,8 +210,13 @@ glm::ivec3 Texture::roundSize(
 
 void Texture::setSwizzleMask(GLint r, GLint g, GLint b, GLint a)
 {
+#if AZUR_GRAPHICS_OPENGL_ES_3_0
+    (void)r, (void)g, (void)b, (void)a;
+    azlog(ERROR, "texture swizzles are not available in WebGL!\n");
+#else
     GLint mask[4] = { r, g, b, a };
     glTexParameteriv(m_target, GL_TEXTURE_SWIZZLE_RGBA, mask);
+#endif
 }
 
 bool Texture::isCompatibleWith(GLuint format, GLuint type, bool error)
