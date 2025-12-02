@@ -4,8 +4,8 @@ set(AZUR_PATH "$ENV{AZUR_PATH_${AZUR_PLATFORM}}")
 
 if(NOT "${FXSDK_PLATFORM_LONG}" STREQUAL "")
   set(AZUR_PLATFORM gint)
-  set(AZUR_PATH "${FXSDK_LIB}")
-  set(AZUR_LIB "${AZUR_PATH}/libazur_${AZUR_PLATFORM}.a")
+  set(AZUR_LIB "${FXSDK_LIB}/azur")
+  set(AZUR_LIB_AZUR "${AZUR_LIB}/libazur.a")
   set(AZUR_INCLUDE "${FXSDK_INCLUDE}")
   set(AZUR_DATA "${FXSDK_SYSROOT}/share/azur")
 
@@ -13,32 +13,35 @@ if(NOT "${FXSDK_PLATFORM_LONG}" STREQUAL "")
   message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
   message("(Azur) Additional assets are at: ${AZUR_DATA}")
 elseif(NOT "${AZUR_PATH}" STREQUAL "")
-  set(AZUR_LIB "${AZUR_PATH}/lib/libazur_${AZUR_PLATFORM}.a")
+  set(AZUR_LIB "${AZUR_PATH}/lib/azur")
+  set(AZUR_LIB_AZUR "${AZUR_LIB}/libazur.a")
   set(AZUR_INCLUDE "${AZUR_PATH}/include")
   set(AZUR_DATA "${AZUR_PATH}/share/azur")
 
   if(NOT EXISTS "${AZUR_LIB}")
     message(SEND_ERROR
-      "AZUR_PATH was set to ${AZUR_PATH}, but ${AZUR_LIB} does not exist")
+      "AZUR_PATH was set to ${AZUR_PATH}, but ${AZUR_LIB_AZUR} does not exist")
   endif()
 
-  message("(Azur) Found AZUR_PATH_${AZUR_PLATFORM}: ${AZUR_LIB}")
+  message("(Azur) Found AZUR_PATH_${AZUR_PLATFORM}: ${AZUR_PATH}")
+  message("(Azur) Will take libraries from: ${AZUR_LIB}")
   message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
   message("(Azur) Additional assets are at: ${AZUR_DATA}")
 else()
   unset(AZUR_PATH)
-  find_library(AZUR_PATH "azur_${AZUR_PLATFORM}")
+  find_library(AZUR_PATH "azur")
   if("${AZUR_PATH}" STREQUAL "AZUR_PATH-NOTFOUND")
     message(SEND_ERROR
-      "Could not find libazur_${AZUR_PLATFORM}.a!\n"
+      "Could not find libazur.a!\n"
       "You can specify the installation path with the environment variable "
       "AZUR_PATH, such as AZUR_PATH=/path/to/lib\n")
   else()
-    set(AZUR_LIB "${AZUR_PATH}")
+    set(AZUR_LIB "${AZUR_PATH}") # <prefix>/lib/azur
     get_filename_component(AZUR_INCLUDE "${AZUR_PATH}/../../include" ABSOLUTE)
-    set(AZUR_DATA "${AZUR_PATH}/share/azur")
+    get_filename_component(AZUR_DATA "${AZUR_PATH}/../../share/azur" ABSOLUTE)
 
-    message("(Azur) Found Azur at: ${AZUR_LIB}")
+    message("(Azur) Found libazur.a at: ${AZUR_PATH}")
+    message("(Azur) Will take libraries from: ${AZUR_LIB}")
     message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
     message("(Azur) Additional assets are at: ${AZUR_DATA}")
   endif()
@@ -61,22 +64,22 @@ message("(Azur) Library version found in header: ${AZUR_VERSION}")
 
 # TODO: ${AZUR_PATH}/lib will not work with the fxSDK sysroot
 set(AZUR_3RDPARTY "")
-set(AZUR_LIB_GL3W "${AZUR_PATH}/lib/libazur_${AZUR_PLATFORM}_gl3w.a")
-set(AZUR_LIB_IMGUI "${AZUR_PATH}/lib/libazur_${AZUR_PLATFORM}_imgui.a")
+set(AZUR_LIB_GL3W "${AZUR_LIB}/libgl3w.a")
+set(AZUR_LIB_IMGUI "${AZUR_LIB}/libimgui.a")
 
-if(EXISTS "${AZUR_INCLUDE}/azur/gl3w" AND EXISTS "${AZUR_LIB_GL3W}")
+if(EXISTS "${AZUR_INCLUDE}/azur/3rdparty/gl3w" AND EXISTS "${AZUR_LIB_GL3W}")
   list(APPEND AZUR_3RDPARTY "gl3w")
   message("(Azur) Found gl3w at: ${AZUR_LIB_GL3W}")
 endif()
 
-if(EXISTS "${AZUR_INCLUDE}/azur/imgui" AND EXISTS "${AZUR_LIB_IMGUI}")
+if(EXISTS "${AZUR_INCLUDE}/azur/3rdparty/imgui" AND EXISTS "${AZUR_LIB_IMGUI}")
   list(APPEND AZUR_3RDPARTY "imgui")
   message("(Azur) Found Dear ImGui at: ${AZUR_LIB_IMGUI}")
 endif()
 
-if(EXISTS "${AZUR_INCLUDE}/azur/glm")
+if(EXISTS "${AZUR_INCLUDE}/azur/3rdparty/glm")
   list(APPEND AZUR_3RDPARTY "glm")
-  message("(Azur) Found GLM at: ${AZUR_INCLUDE}/azur/glm")
+  message("(Azur) Found GLM at: ${AZUR_INCLUDE}/azur/3rdparty/glm")
 endif()
 
 message("(Azur) Summary of external libraries found: ${AZUR_3RDPARTY}")
@@ -90,6 +93,8 @@ find_package_handle_standard_args(Azur
 
 # 4. Find dependencies
 
+find_package(Azur3rdParty REQUIRED)
+
 if(AZUR_PLATFORM STREQUAL linux)
   find_package(PkgConfig REQUIRED)
 endif()
@@ -101,11 +106,12 @@ if(Azur_FOUND)
     add_library(Azur::Azur UNKNOWN IMPORTED)
   endif()
 
+  # TODO: Don't force -L because that brings 3rdparty libs in -l namespace
   set_target_properties(Azur::Azur PROPERTIES
-    IMPORTED_LOCATION "${AZUR_LIB}"
+    IMPORTED_LOCATION "${AZUR_LIB_AZUR}"
     INTERFACE_INCLUDE_DIRECTORIES "${AZUR_INCLUDE}"
     INTERFACE_COMPILE_OPTIONS "-DAZUR_PLATFORM=${AZUR_PLATFORM}"
-    INTERFACE_LINK_OPTIONS "-L${AZUR_PATH}/lib"
+    INTERFACE_LINK_OPTIONS "-L${AZUR_LIB}"
     INTERFACE_LINK_LIBRARIES -lnum)
 
   if(AZUR_PLATFORM STREQUAL linux)
@@ -128,7 +134,7 @@ if("gl3w" IN_LIST AZUR_3RDPARTY)
 
   set_target_properties(Azur::gl3w PROPERTIES
     IMPORTED_LOCATION "${AZUR_LIB_GL3W}"
-    INTERFACE_INCLUDE_DIRECTORIES "${AZUR_INCLUDE}/azur/gl3w")
+    INTERFACE_INCLUDE_DIRECTORIES "${AZUR_INCLUDE}/azur/3rdparty/gl3w")
 
   if(AZUR_PLATFORM STREQUAL linux)
     pkg_check_modules(glx REQUIRED glx IMPORTED_TARGET)
@@ -143,7 +149,7 @@ if("glm" IN_LIST AZUR_3RDPARTY)
   endif()
 
   set_target_properties(Azur::GLM PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "${AZUR_INCLUDE}/azur/glm")
+    INTERFACE_INCLUDE_DIRECTORIES "${AZUR_INCLUDE}/azur/3rdparty")
 endif()
 
 if("imgui" IN_LIST AZUR_3RDPARTY)
@@ -154,7 +160,7 @@ if("imgui" IN_LIST AZUR_3RDPARTY)
   set_target_properties(Azur::ImGui PROPERTIES
     IMPORTED_LOCATION "${AZUR_LIB_IMGUI}"
     INTERFACE_INCLUDE_DIRECTORIES
-      "${AZUR_INCLUDE}/azur/imgui;${AZUR_INCLUDE}/azur/imgui/backends"
+      "${AZUR_INCLUDE}/azur/3rdparty/imgui;${AZUR_INCLUDE}/azur/3rdparty/imgui/backends"
     INTERFACE_LINK_OPTIONS "-Wl,--gc-sections")
 
   if(AZUR_PLATFORM STREQUAL emscripten)
@@ -163,7 +169,7 @@ if("imgui" IN_LIST AZUR_3RDPARTY)
       -sMIN_WEBGL_VERSION=2)
     target_compile_definitions(Azur::ImGui INTERFACE -DIMGUI_ENABLE_FREETYPE)
     target_include_directories(Azur::ImGui INTERFACE
-      "${AZUR_INCLUDE}/azur/imgui/misc/freetype")
+      "${AZUR_INCLUDE}/azur/3rdparty/imgui/misc/freetype")
   else()
     pkg_check_modules(freetype2 freetype2 IMPORTED_TARGET)
     if(freetype2_FOUND)

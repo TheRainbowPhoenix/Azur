@@ -13,3 +13,9 @@
 [submodule "3rdparty/stb"]
 	path = 3rdparty/stb
 	url = https://github.com/nothings/stb.git
+[submodule "3rdparty/ffmpeg"]
+	path = 3rdparty/ffmpeg
+	url = https://git.ffmpeg.org/ffmpeg.git
+[submodule "3rdparty/nv-codec-headers"]
+	path = 3rdparty/nv-codec-headers
+	url = https://github.com/FFmpeg/nv-codec-headers.git

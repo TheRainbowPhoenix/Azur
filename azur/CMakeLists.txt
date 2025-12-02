@@ -122,8 +122,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     -Wno-mathematical-notation-identifier-extension)
 endif()
 
-set_target_properties(azur PROPERTIES OUTPUT_NAME "azur_${AZUR_PLATFORM}")
-
 # Link with GL3W to load the OpenGL 3.3 core profile
 if(AZUR_GRAPHICS_OPENGL_3_3)
   target_link_libraries(azur PUBLIC gl3w)
@@ -142,7 +140,7 @@ target_include_directories(azur PRIVATE
 # Install
 #---
 
-# Library file: libazur_*.a
+# Library file: libazur.a
 install(TARGETS azur DESTINATION ${LIBDIR})
 # Headers: azur/*.h
 install(DIRECTORY include/ DESTINATION ${INCDIR} FILES_MATCHING PATTERN "*.h")

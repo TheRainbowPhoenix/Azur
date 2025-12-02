@@ -55,8 +55,9 @@ if("${FXSDK_PLATFORM_LONG}" STREQUAL fxCG50)
 endif()
 
 # Default install paths
-set(LIBDIR "lib")
+set(LIBDIR "lib/azur")
 set(INCDIR "include")
+set(INCDIR3RDPARTY "include/azur/3rdparty")
 set(DATADIR "share/azur")
 set(MODPATH "lib/cmake")
 
@@ -144,12 +145,16 @@ endif()
 add_subdirectory(libnum)
 add_subdirectory(azur)
 
+if(DEFINED FFMPEG_LIBS)
+  add_dependencies(azur ffmpeg)
+endif()
+
 #---
 # Install
 #---
 
 # CMake module to find the library
-install(FILES FindAzur.cmake DESTINATION ${MODPATH})
+install(FILES FindAzur.cmake FindAzur3rdParty.cmake DESTINATION ${MODPATH})
 
 #---
 # Testing
