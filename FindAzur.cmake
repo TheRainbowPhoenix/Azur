@@ -106,12 +106,10 @@ if(Azur_FOUND)
     add_library(Azur::Azur UNKNOWN IMPORTED)
   endif()
 
-  # TODO: Don't force -L because that brings 3rdparty libs in -l namespace
   set_target_properties(Azur::Azur PROPERTIES
     IMPORTED_LOCATION "${AZUR_LIB_AZUR}"
     INTERFACE_INCLUDE_DIRECTORIES "${AZUR_INCLUDE}"
     INTERFACE_COMPILE_OPTIONS "-DAZUR_PLATFORM=${AZUR_PLATFORM}"
-    INTERFACE_LINK_OPTIONS "-L${AZUR_LIB}"
     INTERFACE_LINK_LIBRARIES -lnum)
 
   if(AZUR_PLATFORM STREQUAL linux)

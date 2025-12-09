@@ -133,6 +133,8 @@ set(FFMPEG_LIBS
   "${FFMPEG_PREFIX}/lib/libswscale.a")
 set(FFMPEG_LIBS ${FFMPEG_LIBS} PARENT_SCOPE)
 
+# First install nv-codec-headers (NVFF) which is needed for the Nvidia codecs.
+# We might not build them, but at least we can. Then do ffmpeg.
 add_custom_command(
   OUTPUT ${FFMPEG_LIBS}
   COMMAND
