@@ -114,7 +114,9 @@ if(AZUR_GRAPHICS_GINT_CG)
 endif()
 
 add_library(azur STATIC ${SOURCES})
-target_compile_options(azur PRIVATE -pthread)
+if(NOT AZUR_PLATFORM STREQUAL gint)
+  target_compile_options(azur PRIVATE -pthread)
+endif()
 target_link_libraries(azur PUBLIC num)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -143,14 +145,10 @@ target_include_directories(azur PRIVATE
 # Library file: libazur.a
 install(TARGETS azur DESTINATION ${LIBDIR})
 # Headers: azur/*.h
-install(DIRECTORY include/ DESTINATION ${INCDIR} FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY include/ DESTINATION ${INCDIR}
+  FILES_MATCHING PATTERN "*.h")
 # Generated header: azur/config.h
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/azur/config.h"
-  DESTINATION ${INCDIR}/azur)
-# Headers: azur/stb_*.h
-install(FILES
-  ../3rdparty/stb/stb_image.h
-  ../3rdparty/stb/stb_image_write.h
   DESTINATION ${INCDIR}/azur)
 # Assets and tools
 install(DIRECTORY assets DESTINATION ${DATADIR})

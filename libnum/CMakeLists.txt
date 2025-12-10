@@ -29,9 +29,9 @@ target_include_directories(num PUBLIC
 # Library file: libnum.a
 install(TARGETS num DESTINATION ${LIBDIR})
 # Headers: num/config.h and num/*.h
-install(DIRECTORY include/ DESTINATION ${INCDIR})
+install(DIRECTORY include/ DESTINATION ${INCDIR}/libnum)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/num/config.h"
-        DESTINATION ${INCDIR}/num)
+        DESTINATION ${INCDIR}/libnum/num)
 
 #---
 # Unit tests

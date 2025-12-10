@@ -33,7 +33,7 @@
 #---
 
 cmake_minimum_required(VERSION 3.15)
-project(Azur VERSION 0.2 LANGUAGES C CXX ASM)
+project(Azur VERSION 0.3 LANGUAGES C CXX ASM)
 include(CTest)
 
 set(CMAKE_INSTALL_MESSAGE LAZY)
@@ -56,7 +56,7 @@ endif()
 
 # Default install paths
 set(LIBDIR "lib/azur")
-set(INCDIR "include")
+set(INCDIR "include/azur")
 set(INCDIR3RDPARTY "include/azur/3rdparty")
 set(DATADIR "share/azur")
 set(MODPATH "lib/cmake")
@@ -77,8 +77,8 @@ if(AZUR_PLATFORM STREQUAL gint)
   link_libraries(Gint::Gint)
 
   # Install in the fxSDK sysroot
-  set(LIBDIR "${FXSDK_LIB}")
-  set(INCDIR "${FXSDK_INCLUDE}")
+  set(LIBDIR "${FXSDK_LIB}/azur")
+  set(INCDIR "${FXSDK_INCLUDE}/azur")
   set(DATADIR "${FXSDK_SYSROOT}/share/azur")
   set(MODPATH "${FXSDK_CMAKE_MODULE_PATH}")
 endif()

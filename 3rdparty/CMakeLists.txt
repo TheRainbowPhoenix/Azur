@@ -5,9 +5,7 @@
 #-----------------------------------------------------------------------------#
 # Build system for third-party libraries bundled with Azur
 
-#---
-# gl3w
-#---
+#=== gl3w =====================================================================#
 
 # Use GL3W to load the OpenGL 3.3 core profile
 if(AZUR_GRAPHICS_OPENGL_3_3)
@@ -27,18 +25,15 @@ if(AZUR_GRAPHICS_OPENGL_3_3)
   install(DIRECTORY gl3w/include/ DESTINATION ${INCDIR3RDPARTY}/gl3w)
 endif()
 
-#---
-# GLM
-#---
+#=== glm ======================================================================#
 
 # TODO: Get rid of the dependency GLM by using libnum instead
 
 # Headers
-install(DIRECTORY glm/glm/ DESTINATION ${INCDIR3RDPARTY}/glm)
+install(DIRECTORY glm/glm DESTINATION ${INCDIR3RDPARTY}/glm)
 
-#---
-# The Dear ImGui library for SDL + OpenGL3/OpenGLES2
-#---
+#=== Dear ImGui ===============================================================#
+# Configured for SDL + OpenGL3/OpenGLES3.
 
 set(SOURCES
   imgui/imgui.cpp
@@ -90,9 +85,7 @@ install(DIRECTORY imgui/ DESTINATION ${INCDIR3RDPARTY}/imgui
   PATTERN docs EXCLUDE
   PATTERN .github EXCLUDE)
 
-#---
-# FFmpeg
-#---
+#=== FFmpeg ===================================================================#
 
 set(FFMPEG_NVFF_SRC "${CMAKE_CURRENT_SOURCE_DIR}/nv-codec-headers")
 
@@ -152,4 +145,13 @@ add_custom_target(ffmpeg DEPENDS ${FFMPEG_LIBS})
 # Install library files
 install(FILES ${FFMPEG_LIBS} DESTINATION ${LIBDIR})
 # Install headers
-install(DIRECTORY ${FFMPEG_PREFIX}/include/ DESTINATION ${INCDIR3RDPARTY})
+install(DIRECTORY ${FFMPEG_PREFIX}/include/
+  DESTINATION ${INCDIR3RDPARTY}/ffmpeg)
+
+#=== stb libraries ============================================================#
+
+# Headers: azur/stb_*.h
+install(FILES
+  stb/stb_image.h
+  stb/stb_image_write.h
+  DESTINATION ${INCDIR3RDPARTY}/stb)
