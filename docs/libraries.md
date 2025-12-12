@@ -14,6 +14,7 @@ Azur relies on a number of third-party libraries at compile-time or runtime, and
 
 #table(rowsep: "\\\\", colsep: "&", head: "row"):
   Library & License & Description \\
+  [ffmpeg](https://ffmpeg.org/) & GPL (for Azur's build) & Audio/video library \\
   [gl3w](https://github.com/skaslev/gl3w) & Public domain & OpenGL core profile loader \\
   [glm](https://github.com/g-truc/glm) & MIT & OpenGL Mathematics \\
   [Dear ImGui](https://github.com/ocornut/imgui) & MIT & Awesome immediate-mode GUI framework \\
@@ -21,6 +22,8 @@ Azur relies on a number of third-party libraries at compile-time or runtime, and
 
 gl3w is used internally to load an OpenGL core profile.
 Applications shouldn't need to access it as its only job is performed when initializing Azur.
+
+TODO If one wants to avoid the GPL: don't use ffmpeg; or: option to build it with libopenh264 (and maybe other codecs, or not).
 
 ## Using glm
 

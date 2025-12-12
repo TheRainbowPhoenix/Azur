@@ -87,58 +87,28 @@ install(DIRECTORY imgui/ DESTINATION ${INCDIR3RDPARTY}/imgui
 
 #=== FFmpeg ===================================================================#
 
-set(FFMPEG_NVFF_SRC "${CMAKE_CURRENT_SOURCE_DIR}/nv-codec-headers")
-
 set(FFMPEG_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg-prefix")
-set(FFMPEG_PREFIX_PKGCONFIG "${FFMPEG_PREFIX}/lib/pkgconfig")
-set(FFMPEG_BUILD "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg-build")
-
-set(FFMPEG_CONFIGURE_ARGS
-  --disable-all
-  --enable-encoder=h264_nvenc
-  --enable-encoder=h264_vaapi
-  --enable-encoder=h264_vulkan
-  --enable-encoder=libvpx_vp9
-  --enable-encoder=libx264
-  --enable-encoder=libx265
-  --enable-encoder=hevc_nvenc
-  --enable-encoder=hevc_vaapi
-  --enable-encoder=hevc_vulkan
-  --enable-avcodec
-  --enable-avformat
-  --enable-swscale
-  --enable-gpl
-  --enable-libx264
-  --enable-libx265
-  --enable-libvpx
-  --enable-cuda-llvm
-  --enable-vaapi
-  --enable-ffnvcodec
-  --enable-nvenc
-  --enable-opengl
-  --enable-vulkan
-  --enable-lto)
-
 set(FFMPEG_LIBS
   "${FFMPEG_PREFIX}/lib/libavcodec.a"
   "${FFMPEG_PREFIX}/lib/libavformat.a"
   "${FFMPEG_PREFIX}/lib/libavutil.a"
-  "${FFMPEG_PREFIX}/lib/libswscale.a")
+  "${FFMPEG_PREFIX}/lib/libswscale.a"
+  "${FFMPEG_PREFIX}/lib/libx264.a")
+  # TODO: libx264.a
 set(FFMPEG_LIBS ${FFMPEG_LIBS} PARENT_SCOPE)
 
 # First install nv-codec-headers (NVFF) which is needed for the Nvidia codecs.
 # We might not build them, but at least we can. Then do ffmpeg.
 add_custom_command(
   OUTPUT ${FFMPEG_LIBS}
-  COMMAND
-    make -C "${FFMPEG_NVFF_SRC}" install PREFIX="${FFMPEG_PREFIX}" &&
-    mkdir -p "${FFMPEG_BUILD}" &&
-    cd "${FFMPEG_BUILD}" &&
-    env PKG_CONFIG_PATH="${FFMPEG_PREFIX_PKGCONFIG}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg/configure"
-      --prefix="${FFMPEG_PREFIX}" ${FFMPEG_CONFIGURE_ARGS} &&
-    make -j2 all install
-  COMMENT "Compiling ffmpeg...")
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build_ffmpeg.sh"
+  COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/build_ffmpeg.sh"
+          "${FFMPEG_PREFIX}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg"
+          "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg-build"
+          "${CMAKE_CURRENT_SOURCE_DIR}/x264"
+          "${CMAKE_CURRENT_BINARY_DIR}/x264-build"
+  COMMENT "Compiling ffmpeg and its dependencies...")
 
 add_custom_target(ffmpeg DEPENDS ${FFMPEG_LIBS})
 

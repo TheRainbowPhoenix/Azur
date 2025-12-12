@@ -95,6 +95,7 @@ set(AZUR_LIB_AVUTIL "${AZUR_LIB}/libavutil.a")
 set(AZUR_LIB_AVFORMAT "${AZUR_LIB}/libavformat.a")
 set(AZUR_LIB_AVCODEC "${AZUR_LIB}/libavcodec.a")
 set(AZUR_LIB_SWSCALE "${AZUR_LIB}/libswscale.a")
+set(AZUR_LIB_X264 "${AZUR_LIB}/libx264.a")
 set(AZUR_INCLUDE_FFMPEG "${AZUR_INCLUDE_3RDPARTY}/ffmpeg")
 
 if(EXISTS "${AZUR_INCLUDE_FFMPEG}")
@@ -114,24 +115,26 @@ if(EXISTS "${AZUR_INCLUDE_FFMPEG}")
     target_link_libraries(Azur::ffmpeg INTERFACE Azur::libavutil)
   endif()
 
-  if(EXISTS "${AZUR_LIB_AVFORMAT}")
-    message("(Azur/ffmpeg) Our ffmpeg build has libavformat")
-    add_library(Azur::libavformat STATIC IMPORTED)
-    set_target_properties(Azur::libavformat PROPERTIES
-      IMPORTED_LOCATION "${AZUR_LIB_AVFORMAT}"
-      # INTERFACE_LINK_LIBRARIES "-lm;-lz;-latomic"
-      SYSTEM FALSE)
-    target_link_libraries(Azur::ffmpeg INTERFACE Azur::libavformat)
-  endif()
-
   if(EXISTS "${AZUR_LIB_AVCODEC}")
     message("(Azur/ffmpeg) Our ffmpeg build has libavcodec")
     add_library(Azur::libavcodec STATIC IMPORTED)
     set_target_properties(Azur::libavcodec PROPERTIES
       IMPORTED_LOCATION "${AZUR_LIB_AVCODEC}"
-      # INTERFACE_LINK_LIBRARIES "-lvpx;-lm;-pthread;-lm;-latomic;-lx264;-lx265 -lva"
+      INTERFACE_LINK_LIBRARIES Azur::libavutil
+      # INTERFACE_LINK_LIBRARIES "-lvpx;-lm;-pthread;-lm;-latomic;-lx264;-lx265"
       SYSTEM FALSE)
     target_link_libraries(Azur::ffmpeg INTERFACE Azur::libavcodec)
+  endif()
+
+  if(EXISTS "${AZUR_LIB_AVFORMAT}")
+    message("(Azur/ffmpeg) Our ffmpeg build has libavformat")
+    add_library(Azur::libavformat STATIC IMPORTED)
+    set_target_properties(Azur::libavformat PROPERTIES
+      IMPORTED_LOCATION "${AZUR_LIB_AVFORMAT}"
+      INTERFACE_LINK_LIBRARIES Azur::libavcodec
+      # INTERFACE_LINK_LIBRARIES "-lm;-lz;-latomic"
+      SYSTEM FALSE)
+    target_link_libraries(Azur::ffmpeg INTERFACE Azur::libavformat)
   endif()
 
   if(EXISTS "${AZUR_LIB_SWSCALE}")
@@ -139,9 +142,19 @@ if(EXISTS "${AZUR_INCLUDE_FFMPEG}")
     add_library(Azur::libswscale STATIC IMPORTED)
     set_target_properties(Azur::libswscale PROPERTIES
       IMPORTED_LOCATION "${AZUR_LIB_SWSCALE}"
+      INTERFACE_LINK_LIBRARIES Azur::libavutil
       # INTERFACE_LINK_LIBRARIES "-lm;-latomic"
       SYSTEM FALSE)
     target_link_libraries(Azur::ffmpeg INTERFACE Azur::libswscale)
+  endif()
+
+  if(EXISTS "${AZUR_LIB_X264}")
+    message("(Azur/ffmpeg) Our ffmpeg build has libx264")
+    add_library(Azur::libx264 STATIC IMPORTED)
+    set_target_properties(Azur::libx264 PROPERTIES
+      IMPORTED_LOCATION "${AZUR_LIB_X264}"
+      INTERFACE_LINK_LIBRARIES "-lpthread;-lm;-ldl")
+    target_link_libraries(Azur::ffmpeg INTERFACE Azur::libx264)
   endif()
 endif()
 

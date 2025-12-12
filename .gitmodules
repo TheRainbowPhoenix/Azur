@@ -19,3 +19,6 @@
 [submodule "3rdparty/nv-codec-headers"]
 	path = 3rdparty/nv-codec-headers
 	url = https://github.com/FFmpeg/nv-codec-headers.git
+[submodule "3rdparty/x264"]
+	path = 3rdparty/x264
+	url = https://code.videolan.org/videolan/x264.git
