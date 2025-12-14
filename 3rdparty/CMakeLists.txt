@@ -87,36 +87,38 @@ install(DIRECTORY imgui/ DESTINATION ${INCDIR3RDPARTY}/imgui
 
 #=== FFmpeg ===================================================================#
 
-set(FFMPEG_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg-prefix")
-set(FFMPEG_LIBS
-  "${FFMPEG_PREFIX}/lib/libavcodec.a"
-  "${FFMPEG_PREFIX}/lib/libavformat.a"
-  "${FFMPEG_PREFIX}/lib/libavutil.a"
-  "${FFMPEG_PREFIX}/lib/libswscale.a"
-  "${FFMPEG_PREFIX}/lib/libx264.a")
-  # TODO: libx264.a
-set(FFMPEG_LIBS ${FFMPEG_LIBS} PARENT_SCOPE)
+if(AZUR_PLATFORM_LINUX)
+  set(FFMPEG_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg-prefix")
+  set(FFMPEG_LIBS
+    "${FFMPEG_PREFIX}/lib/libavcodec.a"
+    "${FFMPEG_PREFIX}/lib/libavformat.a"
+    "${FFMPEG_PREFIX}/lib/libavutil.a"
+    "${FFMPEG_PREFIX}/lib/libswscale.a"
+    "${FFMPEG_PREFIX}/lib/libx264.a")
+    # TODO: libx264.a
+  set(FFMPEG_LIBS ${FFMPEG_LIBS} PARENT_SCOPE)
 
-# First install nv-codec-headers (NVFF) which is needed for the Nvidia codecs.
-# We might not build them, but at least we can. Then do ffmpeg.
-add_custom_command(
-  OUTPUT ${FFMPEG_LIBS}
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build_ffmpeg.sh"
-  COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/build_ffmpeg.sh"
-          "${FFMPEG_PREFIX}"
-          "${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg"
-          "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg-build"
-          "${CMAKE_CURRENT_SOURCE_DIR}/x264"
-          "${CMAKE_CURRENT_BINARY_DIR}/x264-build"
-  COMMENT "Compiling ffmpeg and its dependencies...")
+  # First install nv-codec-headers (NVFF) which is needed for the Nvidia codecs.
+  # We might not build them, but at least we can. Then do ffmpeg.
+  add_custom_command(
+    OUTPUT ${FFMPEG_LIBS}
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build_ffmpeg.sh"
+    COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/build_ffmpeg.sh"
+            "${FFMPEG_PREFIX}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg"
+            "${CMAKE_CURRENT_BINARY_DIR}/ffmpeg-build"
+            "${CMAKE_CURRENT_SOURCE_DIR}/x264"
+            "${CMAKE_CURRENT_BINARY_DIR}/x264-build"
+    COMMENT "Compiling ffmpeg and its dependencies...")
 
-add_custom_target(ffmpeg DEPENDS ${FFMPEG_LIBS})
+  add_custom_target(ffmpeg DEPENDS ${FFMPEG_LIBS})
 
-# Install library files
-install(FILES ${FFMPEG_LIBS} DESTINATION ${LIBDIR})
-# Install headers
-install(DIRECTORY ${FFMPEG_PREFIX}/include/
-  DESTINATION ${INCDIR3RDPARTY}/ffmpeg)
+  # Install library files
+  install(FILES ${FFMPEG_LIBS} DESTINATION ${LIBDIR})
+  # Install headers
+  install(DIRECTORY ${FFMPEG_PREFIX}/include/
+    DESTINATION ${INCDIR3RDPARTY}/ffmpeg)
+endif()
 
 #=== stb libraries ============================================================#
 
