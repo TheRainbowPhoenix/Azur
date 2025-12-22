@@ -8,6 +8,8 @@
 
 set(AZUR_PATH "$ENV{AZUR_PATH_${AZUR_PLATFORM}}")
 
+find_package(Python3 COMPONENTS Interpreter)
+
 # Avoid double-finding.
 if(DEFINED AZUR_FOUND)
   return()
@@ -177,9 +179,10 @@ function(azur_embed_assets)
   add_custom_command(
     OUTPUT "${EA_OUTPUT}"
     COMMAND mkdir -p "${EA_FOLDER}"
-    COMMAND python3 "${AZUR_DATA}/tools/gen-assets.py"
-                    -o "${EA_OUTPUT}" -n "${EA_NAME}" --
-                    -d "${EA_RELATIVE_TO}" ${EA_ASSETS}
+    COMMAND "${Python3_EXECUTABLE}"
+            "${AZUR_DATA}/tools/gen-assets.py"
+            -o "${EA_OUTPUT}" -n "${EA_NAME}" --
+            -d "${EA_RELATIVE_TO}" ${EA_ASSETS}
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Embedding assets"
     DEPENDS ${EA_ASSETS})

@@ -67,7 +67,8 @@ set(PERF_TESTS
 
 foreach(testfile IN LISTS PERF_TESTS)
   add_test(NAME "${testfile}"
-    COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/test/isel.py"
-                    "${CMAKE_CURRENT_SOURCE_DIR}/${testfile}"
-                    -I "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/test/isel.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/${testfile}"
+            -I "${CMAKE_CURRENT_SOURCE_DIR}/include")
 endforeach()

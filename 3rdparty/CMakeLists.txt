@@ -10,7 +10,7 @@
 # Use GL3W to load the OpenGL 3.3 core profile
 if(AZUR_GRAPHICS_OPENGL_3_3)
   add_custom_command(OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/gl3w/src/gl3w.c"
-    COMMAND ./gl3w_gen.py
+    COMMAND "${Python3_EXECUTABLE}" gl3w_gen.py
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/gl3w")
 
   add_library(gl3w gl3w/src/gl3w.c)

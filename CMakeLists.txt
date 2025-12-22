@@ -36,6 +36,8 @@ cmake_minimum_required(VERSION 3.15)
 project(Azur VERSION 0.3 LANGUAGES C CXX ASM)
 include(CTest)
 
+find_package(Python3 COMPONENTS Interpreter)
+
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
