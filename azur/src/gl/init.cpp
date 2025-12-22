@@ -3,7 +3,6 @@
 #include <azur/gl/gl.h>
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 
 #include <string>
 
@@ -113,12 +112,6 @@ int azur_init(char const *title, int window_width, int window_height, bool dbg)
         return 1;
     }
 
-    rc = IMG_Init(IMG_INIT_PNG);
-    if(rc != IMG_INIT_PNG) {
-        azlog(FATAL, "IMG_Init: %s\n", IMG_GetError());
-        return 1;
-    }
-
     window = SDL_CreateWindow(title,
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         window_width, window_height,
@@ -171,7 +164,6 @@ void azur_quit(void)
 
     if(window) SDL_DestroyWindow(window);
     if(glcontext) SDL_GL_DeleteContext(glcontext);
-    IMG_Quit();
     SDL_Quit();
 
     window = NULL;

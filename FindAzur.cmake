@@ -130,15 +130,13 @@ set_target_properties(Azur::Azur PROPERTIES
 
 if(AZUR_PLATFORM STREQUAL linux)
   message("(Azur) Getting sdl2 from pkg-config (required)")
-  message("(Azur) Getting sdl2_image from pkg-config (required)")
   message("(Azur) Getting opengl from pkg-config (required)")
   pkg_check_modules(sdl2 REQUIRED sdl2 IMPORTED_TARGET)
-  pkg_check_modules(sdl2_image REQUIRED SDL2_image IMPORTED_TARGET)
   pkg_check_modules(opengl REQUIRED opengl IMPORTED_TARGET)
   target_link_libraries(Azur::Azur INTERFACE
-    PkgConfig::sdl2_image PkgConfig::sdl2 PkgConfig::opengl -lm)
+      PkgConfig::sdl2 PkgConfig::opengl -lm)
 elseif(AZUR_PLATFORM STREQUAL emscripten)
-  set(PORTS -sUSE_SDL=2 -sUSE_SDL_IMAGE=2 -sSDL2_IMAGE_FORMATS=["png"])
+  set(PORTS -sUSE_SDL=2)
   add_compile_options(${PORTS})
   add_link_options(${PORTS} -O3)
 endif()
