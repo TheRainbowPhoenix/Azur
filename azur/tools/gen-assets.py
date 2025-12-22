@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #-----------------------------------------------------------------------------#
 #  ,"  /\  ",    Azur: A game engine for CASIO fx-CG and PC                   #
 # |  _/__\_  |   Designed by Lephe' and the Planète Casio community.          #

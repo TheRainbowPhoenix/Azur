@@ -39,7 +39,7 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
 
   add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c"
     COMMAND mkdir -p "${CMAKE_CURRENT_BINARY_DIR}/src"
-    COMMAND python gen_glsl.py "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c"
+    COMMAND python3 gen_glsl.py "${CMAKE_CURRENT_BINARY_DIR}/src/glsl.c"
             ${ASSETS}
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Generating a C file with prebuilt shaders"
@@ -49,10 +49,10 @@ if(AZUR_TOOLKIT_SDL AND AZUR_GRAPHICS_OPENGL)
   add_custom_command(
     OUTPUT "${AUTOGEN}/assets.cc"
     COMMAND mkdir -p "${AUTOGEN}"
-    COMMAND python "tools/gen-assets.py"
-                   -o "${AUTOGEN}/assets.cc" -n "azur" --allow-reserved-names
-                   -i "azur_registerResourceGroup_azur"
-                   -- -d "." ${ASSETS}
+    COMMAND python3 "tools/gen-assets.py"
+                    -o "${AUTOGEN}/assets.cc" -n "azur" --allow-reserved-names
+                    -i "azur_registerResourceGroup_azur"
+                    -- -d "." ${ASSETS}
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Embedding assets"
     DEPENDS ${ASSETS})
