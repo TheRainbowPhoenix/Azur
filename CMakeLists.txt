@@ -5,15 +5,9 @@
 #-----------------------------------------------------------------------------#
 # Main build system
 #
-# The build system consists of this CMakeLists.txt file, the CMakeLists.txt
-# files of each component folder, and importantly the FindAzur.cmake file
-# which loads the library for users.
-#
-# We build and install third-party dependencies along the engine to alleviate
-# some packaging/distribution issues. Currently, these are:
-#
-# o  GL3W, which we rely on to load the OpenGL core profile on PC
-# o  Dear ImGui, for introspection and debugging tools
+# The build system consists of this CMakeLists.txt file, those of component
+# folders, and the find modules which load the library for users. Third-party
+# dependencies are built and installed before the engine; see in 3rdparty/.
 #
 # The following variables can be set on the command-line at cmake time:
 #
@@ -34,6 +28,11 @@
 
 cmake_minimum_required(VERSION 3.15)
 project(Azur VERSION 0.3 LANGUAGES C CXX ASM)
+
+# Get the third-party modules, which must have been installed first
+list(APPEND CMAKE_MODULE_PATH "$ENV{AZUR_PATH_${AZUR_PLATFORM}}/lib/cmake")
+find_package(Azur3rdParty 0.3 REQUIRED)
+
 include(CTest)
 
 find_package(Python3 COMPONENTS Interpreter)
@@ -59,7 +58,6 @@ endif()
 # Default install paths
 set(LIBDIR "lib/azur")
 set(INCDIR "include/azur")
-set(INCDIR3RDPARTY "include/azur/3rdparty")
 set(DATADIR "share/azur")
 set(MODPATH "lib/cmake")
 
@@ -138,24 +136,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # Subdirectory selection
 #---
 
-# Exclude third-party software from the build on gint; it wouldn't work ^^"
-if(NOT AZUR_PLATFORM STREQUAL gint)
-  add_subdirectory(3rdparty)
-endif()
-
 add_subdirectory(libnum)
 add_subdirectory(azur)
-
-if(DEFINED FFMPEG_LIBS)
-  add_dependencies(azur ffmpeg)
-endif()
 
 #---
 # Install
 #---
 
 # CMake module to find the library
-install(FILES FindAzur.cmake FindAzur3rdParty.cmake DESTINATION ${MODPATH})
+install(FILES FindAzur.cmake DESTINATION ${MODPATH})
 
 #---
 # Testing

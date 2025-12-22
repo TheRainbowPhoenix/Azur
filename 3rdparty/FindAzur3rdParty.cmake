@@ -4,7 +4,15 @@
 #  "._`\/'_."    License: MIT <https://opensource.org/licenses/MIT>           #
 #-----------------------------------------------------------------------------#
 # User-facing CMake find module for third-party libraries installed with Azur.
-# See also FindAzur.cmake.
+
+# TODO: We look for 3rd-party libraries assuming non-fxSDK layout.
+set(AZUR_PATH "$ENV{AZUR_PATH_${AZUR_PLATFORM}}")
+set(AZUR_LIB "${AZUR_PATH}/lib/azur")
+set(AZUR_INCLUDE "${AZUR_PATH}/include")
+
+message("(Azur) Starting from AZUR_PATH environment variable: ${AZUR_PATH}")
+message("(Azur) Will take libraries from: ${AZUR_LIB}")
+message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
 
 # Where we look for includes.
 set(AZUR_INCLUDE_3RDPARTY "${AZUR_INCLUDE}/azur/3rdparty")

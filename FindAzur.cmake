@@ -44,24 +44,6 @@ elseif(NOT "${AZUR_PATH}" STREQUAL "")
   endif()
 
   message("(Azur) Found AZUR_PATH environment variable: ${AZUR_PATH}")
-
-## By finding libazur.a manually (difficult especially in a subfolder)
-else()
-  unset(AZUR_PATH)
-  find_library(AZUR_PATH "azur")
-  if("${AZUR_PATH}" STREQUAL "AZUR_PATH-NOTFOUND")
-    message(FATAL_ERROR
-      "Could not find libazur.a!\n"
-      "You can specify the installation path with the environment variable "
-      "AZUR_PATH, such as AZUR_PATH=/home/user/.local.\n"
-      "AZUR_PATH/lib/azur/libazur.a should exist.\n")
-  endif()
-
-  set(AZUR_LIB "${AZUR_PATH}")
-  get_filename_component(AZUR_INCLUDE "${AZUR_PATH}/../../include" ABSOLUTE)
-  get_filename_component(AZUR_DATA "${AZUR_PATH}/../../share/azur" ABSOLUTE)
-
-  message("(Azur) Found libazur.a at: ${AZUR_PATH}")
 endif()
 
 message("(Azur) Will take libraries from: ${AZUR_LIB}")

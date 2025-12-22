@@ -1,7 +1,5 @@
 # Build folders
-/build-cg
-/build-linux
-/build-emscripten
+/build*
 
 # Generated docs
 /docs/_www

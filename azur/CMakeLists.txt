@@ -129,12 +129,11 @@ endif()
 
 # Link with GL3W to load the OpenGL 3.3 core profile
 if(AZUR_GRAPHICS_OPENGL_3_3)
-  target_link_libraries(azur PUBLIC gl3w)
+  target_link_libraries(azur PUBLIC Azur::gl3w)
 endif()
 
 if(NOT AZUR_PLATFORM STREQUAL gint)
-  target_link_libraries(azur PUBLIC imgui)
-  target_include_directories(azur PRIVATE "../3rdparty/stb/")
+  target_link_libraries(azur PUBLIC Azur::ImGui Azur::STB)
 endif()
 
 target_include_directories(azur PRIVATE

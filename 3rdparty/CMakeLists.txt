@@ -5,6 +5,55 @@
 #-----------------------------------------------------------------------------#
 # Build system for third-party libraries bundled with Azur
 
+cmake_minimum_required(VERSION 3.15)
+project(Azur3rdParty VERSION 0.3 LANGUAGES C CXX)
+
+find_package(Python3 COMPONENTS Interpreter)
+
+set(CMAKE_INSTALL_MESSAGE LAZY)
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "")
+  set("${CMAKE_BUILD_TYPE}" Release)
+endif()
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL Debug)
+  set(AZUR_DEBUG TRUE)
+else()
+  set(AZUR_DEBUG FALSE)
+endif()
+
+if(AZUR_PLATFORM STREQUAL linux)
+  set(AZUR_PLATFORM_LINUX TRUE)
+  set(AZUR_GRAPHICS_OPENGL_3_3 TRUE)
+  find_package(PkgConfig REQUIRED)
+endif()
+if(AZUR_PLATFORM STREQUAL emscripten)
+  set(AZUR_PLATFORM_EMSCRIPTEN TRUE)
+  set(PORTS -sUSE_SDL=2)
+  add_compile_options(${PORTS})
+  add_link_options(${PORTS})
+endif()
+
+# Options for the libs we compile from source here. Some of the dependencies
+# are fully independent, like ffmpeg (configure/make).
+add_compile_options(
+  $<IF:$<CONFIG:DEBUG>,-O0,-Os>
+  $<$<CONFIG:DEBUG>:-g>
+  -fmacro-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/=)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED TRUE)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
+# Install paths for third-party libraries
+set(LIBDIR "lib/azur")
+set(INCDIR3RDPARTY "include/azur/3rdparty")
+set(MODPATH "lib/cmake")
+
+install(FILES FindAzur3rdParty.cmake DESTINATION ${MODPATH})
+
 #=== gl3w =====================================================================#
 
 # Use GL3W to load the OpenGL 3.3 core profile
@@ -16,12 +65,14 @@ if(AZUR_GRAPHICS_OPENGL_3_3)
   add_library(gl3w gl3w/src/gl3w.c)
   target_include_directories(gl3w PUBLIC gl3w/include)
 
-  # Link with GLX for GL3W to find the extensions, and -ldl
-  target_link_libraries(gl3w INTERFACE PkgConfig::glx -ldl)
+  # Link with GLX for GL3W to find the extensions
+  if(AZUR_PLATFORM STREQUAL linux)
+    pkg_check_modules(glx REQUIRED glx IMPORTED_TARGET)
+    pkg_check_modules(opengl REQUIRED opengl IMPORTED_TARGET)
+    target_link_libraries(gl3w PUBLIC PkgConfig::glx PkgConfig::opengl -ldl)
+  endif()
 
-  # Library file: libazur_*_gl3w.a
   install(TARGETS gl3w DESTINATION ${LIBDIR})
-  # Headers
   install(DIRECTORY gl3w/include/ DESTINATION ${INCDIR3RDPARTY}/gl3w)
 endif()
 
@@ -73,6 +124,11 @@ elseif(freetype2_FOUND)
   target_link_libraries(imgui PUBLIC PkgConfig::freetype2)
 endif()
 
+if(AZUR_PLATFORM_LINUX)
+  pkg_check_modules(sdl2 REQUIRED sdl2 IMPORTED_TARGET)
+  target_link_libraries(imgui PUBLIC PkgConfig::sdl2)
+endif()
+
 # Provide include directories
 target_include_directories(imgui PUBLIC imgui imgui/backends)
 
@@ -95,11 +151,7 @@ if(AZUR_PLATFORM_LINUX)
     "${FFMPEG_PREFIX}/lib/libavutil.a"
     "${FFMPEG_PREFIX}/lib/libswscale.a"
     "${FFMPEG_PREFIX}/lib/libx264.a")
-    # TODO: libx264.a
-  set(FFMPEG_LIBS ${FFMPEG_LIBS} PARENT_SCOPE)
 
-  # First install nv-codec-headers (NVFF) which is needed for the Nvidia codecs.
-  # We might not build them, but at least we can. Then do ffmpeg.
   add_custom_command(
     OUTPUT ${FFMPEG_LIBS}
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build_ffmpeg.sh"
@@ -111,7 +163,7 @@ if(AZUR_PLATFORM_LINUX)
             "${CMAKE_CURRENT_BINARY_DIR}/x264-build"
     COMMENT "Compiling ffmpeg and its dependencies...")
 
-  add_custom_target(ffmpeg DEPENDS ${FFMPEG_LIBS})
+  add_custom_target(ffmpeg ALL DEPENDS ${FFMPEG_LIBS})
 
   # Install library files
   install(FILES ${FFMPEG_LIBS} DESTINATION ${LIBDIR})
