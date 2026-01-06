@@ -34,6 +34,8 @@ You *must* install into a different folder for each platform, as the headers and
 Use the [fxSDK toolchain](https://gitea.planet-casio.com/Lephenixnoir/fxsdk). When building with the fxSDK, `AZUR_PLATFORM=gint` is assumed and the fxSDK sysroot is used to install the library.
 
 ```bash
+fxsdk build-cg -c -B build-cg-3rdparty -S 3rdparty
+make -C build-cg-3rdparty install
 fxsdk build-cg install
 ```
 
