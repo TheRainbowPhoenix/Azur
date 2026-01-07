@@ -5,14 +5,20 @@
 #-----------------------------------------------------------------------------#
 # User-facing CMake find module for third-party libraries installed with Azur.
 
-# TODO: We look for 3rd-party libraries assuming non-fxSDK layout.
 set(AZUR_PATH "$ENV{AZUR_PATH_${AZUR_PLATFORM}}")
-set(AZUR_LIB "${AZUR_PATH}/lib/azur")
-set(AZUR_INCLUDE "${AZUR_PATH}/include")
 
-message("(Azur) Starting from AZUR_PATH environment variable: ${AZUR_PATH}")
-message("(Azur) Will take libraries from: ${AZUR_LIB}")
-message("(Azur) Will take includes from: ${AZUR_INCLUDE}")
+if(NOT "${FXSDK_PLATFORM_LONG}" STREQUAL "")
+  set(AZUR_LIB "${FXSDK_LIB}/azur")
+  set(AZUR_INCLUDE "${FXSDK_INCLUDE}")
+  message("(Azur/3rdparty) Using the fxSDK sysroot")
+elseif(NOT "${AZUR_PATH}" STREQUAL "")
+  set(AZUR_LIB "${AZUR_PATH}/lib/azur")
+  set(AZUR_INCLUDE "${AZUR_PATH}/include")
+  message("(Azur/3rdparty) Found AZUR_PATH environment variable: ${AZUR_PATH}")
+endif()
+
+message("(Azur/3rdparty) Will take libraries from: ${AZUR_LIB}")
+message("(Azur/3rdparty) Will take includes from: ${AZUR_INCLUDE}")
 
 # Where we look for includes.
 set(AZUR_INCLUDE_3RDPARTY "${AZUR_INCLUDE}/azur/3rdparty")
