@@ -9,11 +9,11 @@ int azur_init(char const *title, int width, int height, bool debug)
     (void)title;
     (void)debug;
 
-    if(width == 396 && height == 224)
+    if(width == DWIDTH && height == DHEIGHT)
         azrp_config_scale(1);
-    else if(width == 198 && height == 112)
+    else if(width == DWIDTH/2 && height == DHEIGHT/2)
         azrp_config_scale(2);
-    else if(width == 132 && height == 75)
+    else if(width == DWIDTH/3 && height == DHEIGHT/3)
         azrp_config_scale(3);
     else
         return -1;

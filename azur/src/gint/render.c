@@ -270,7 +270,7 @@ void azrp_render_fragments(void)
 
         prof_enter_norec(azrp_perf_lcd);
         if(azrp_scale == 1)
-            azrp_r61523_fragment_x1(azrp_frag, 396 * azrp_frag_height);
+            azrp_r61523_fragment_x1(azrp_frag, DWIDTH * azrp_frag_height);
         else if(azrp_scale == 2)
             azrp_r61523_fragment_x2(azrp_frag, azrp_width, azrp_frag_height);
         // TODO: r61523 x3 output function
@@ -320,11 +320,11 @@ static void update_frag_count(void)
 static void update_size(void)
 {
     if(azrp_scale == 1)
-        azrp_width = 396, azrp_height = 224, azrp_frag_height = 16;
+        azrp_width = DWIDTH, azrp_height = DHEIGHT, azrp_frag_height = 16;
     else if(azrp_scale == 2)
-        azrp_width = 198, azrp_height = 112, azrp_frag_height = 16;
+        azrp_width = DWIDTH/2, azrp_height = DHEIGHT/2, azrp_frag_height = 16;
     else if(azrp_scale == 3)
-        azrp_width = 132, azrp_height = 75,  azrp_frag_height = 16;
+        azrp_width = DWIDTH/3, azrp_height = DHEIGHT/3,  azrp_frag_height = 16;
 
     azrp_window = (struct dwindow){ 0, 0, azrp_width, azrp_height };
 }
