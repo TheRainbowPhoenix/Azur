@@ -78,6 +78,7 @@ if(AZUR_GRAPHICS_GINT_CG)
   list(APPEND SOURCES
     src/gint/render.c
     src/gint/r61524.s
+    src/gint/r61523.s
     # Clear shader
     src/gint/shaders/clear.c
     src/gint/shaders/clear.S

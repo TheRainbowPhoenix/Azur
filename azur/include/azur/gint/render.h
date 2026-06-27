@@ -38,9 +38,9 @@ AZUR_BEGIN_DECLS
 #include <gint/prof.h>
 
 /* arzp_shader_t: Type of shader functions
-   * [uniforms] is a pointer to any data the shader might use as uniform.
-   * [command] is a structure of the shader's command type.
-   * [fragment] is a pointer to azrp_frag. */
+ * [uniforms] is a pointer to any data the shader might use as uniform.
+ * [command] is a structure of the shader's command type.
+ * [fragment] is a pointer to azrp_frag. */
 typedef void azrp_shader_t(void *uniforms, void *command, void *fragment);
 
 /* azrp_shader_configure_t: Type of shader configuration functions
@@ -181,7 +181,7 @@ void azrp_config_get_line(int y, int *fragment, int *offset);
    - Sets *first_offset to the line number within that fragment;
    - Sets *fragment_count to the number of fragments the interval will cover. */
 void azrp_config_get_lines(int y, int height, int *first_fragment,
-    int *first_offset, int *fragment_count);
+                           int *first_offset, int *fragment_count);
 
 //---
 // Hooks
@@ -226,12 +226,12 @@ void azrp_rect(int x1, int y1, int width, int height, int color_or_effect);
 
 /* Effects for azrp_rect(). */
 enum {
-    /* Invert colors in gamma space. */
-    AZRP_RECT_INVERT = -1,
-    /* Darken by halving all components in gamma space. */
-    AZRP_RECT_DARKEN = -2,
-    /* Whiten by halving the distance to white in gamma space. */
-    AZRP_RECT_WHITEN = -3,
+  /* Invert colors in gamma space. */
+  AZRP_RECT_INVERT = -1,
+  /* Darken by halving all components in gamma space. */
+  AZRP_RECT_DARKEN = -2,
+  /* Whiten by halving the distance to white in gamma space. */
+  AZRP_RECT_WHITEN = -3,
 };
 
 /* azrp_line(): Draw a straight line with the Bresenham algorithm. */
@@ -242,14 +242,14 @@ void azrp_text(int x, int y, int fg, char const *str);
 
 /* azrp_text_opt(): Render text with options similar to dtext_opt(). */
 void azrp_text_opt(int x, int y, font_t const *font, int fg, int halign,
-    int valign, char const *str, int size);
+                   int valign, char const *str, int size);
 
 /* azrp_print(): Like azrp_text() but with printf-formatting. */
 void azrp_print(int x, int y, int fg, char const *fmt, ...);
 
 /* azrp_print_opt(): Like azrp_text_opt() but with printf-formatting. */
 void azrp_print_opt(int x, int y, font_t const *font, int fg, int halign,
-    int valign, char const *fmt, ...);
+                    int valign, char const *fmt, ...);
 
 //---
 // Performance indicators
@@ -268,11 +268,11 @@ extern prof_t azrp_perf_sort;
 /* This counter runs during shader executions in arzp_render_fragments(). */
 extern prof_t azrp_perf_shaders;
 
-/* This counter runs during CPU transfers to the R61524 display. */
-extern prof_t azrp_perf_r61524;
+/* This counter runs during CPU transfers to the R61523/R61524 display. */
+extern prof_t azrp_perf_lcd;
 
-/* This counter runs during rendering; it is the sum of shaders and r61524,
-   plus some logic overhead. */
+/* This counter runs during rendering; it is the sum of shaders and
+   r61524/r61523, plus some logic overhead. */
 extern prof_t azrp_perf_render;
 
 /* azrp_perf_clear(): Clear all performance counters
@@ -298,7 +298,7 @@ void azrp_perf_clear(void);
    Returns the shader ID to be set in commands, or -1 if the maximum number of
    shaders has been exceeded. */
 int azrp_register_shader(azrp_shader_t *program,
-    azrp_shader_configure_t *configure);
+                         azrp_shader_configure_t *configure);
 
 /* azrp_set_uniforms(): Set a shader's uniforms pointer
 
@@ -389,7 +389,7 @@ bool azrp_instantiate_command(void const *command, int fragment, int count);
    filled. This function sets the shader ID and adjusts the command for tiled
    rendering. This is mostly an internal function. */
 void azrp_queue_image(struct gint_image_box *box, image_t const *img,
-    struct gint_image_cmd *cmd);
+                      struct gint_image_cmd *cmd);
 
 //---
 // Internal R61524 functions
@@ -398,6 +398,14 @@ void azrp_queue_image(struct gint_image_box *box, image_t const *img,
 void azrp_r61524_fragment_x1(void *fragment, int size);
 
 void azrp_r61524_fragment_x2(void *fragment, int width, int height);
+
+//---
+// Internal R61523 functions
+//---
+
+void azrp_r61523_fragment_x1(void *fragment, int size);
+
+void azrp_r61523_fragment_x2(void *fragment, int width, int height);
 
 //---
 // Internal functions for the image shader
@@ -411,7 +419,7 @@ void azrp_r61524_fragment_x2(void *fragment, int width, int height);
 /* azrp_image_effect(): Generalized azrp_image() with dynamic effects */
 #define azrp_image_effect(x, y, img, eff, ...) \
     azrp_image_effect(x, y, img, 0, 0, (img)->width, (img)->height, eff, \
-        ##__VA_ARGS__)
+                    ##__VA_ARGS__)
 /* azrp_subimage_effect(): Generalized azrp_subimage() with dynamic effects */
 void azrp_subimage_effect(int x, int y, image_t const *img,
     int left, int top, int w, int h, int effects, ...);
@@ -435,7 +443,7 @@ AZRP_IMAGE_SIG(_dye, int effects, int dye_color)
 
 #define azrp_image_rgb16_effect(x, y, img, eff, ...) \
     azrp_subimage_rgb16_effect(x, y, img, 0, 0, (img)->width, (img)->height, \
-        eff, ##__VA_ARGS__)
+                             eff, ##__VA_ARGS__)
 #define azrp_image_p8_effect(x, y, img, eff, ...) \
     azrp_subimage_p8_effect(x, y, img, 0, 0, (img)->width, (img)->height, \
         eff, ##__VA_ARGS__)

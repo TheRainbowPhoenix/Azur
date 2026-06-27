@@ -1,6 +1,7 @@
 #include <azur/gint/render.h>
 
 #include <gint/drivers/r61524.h>
+#include <gint/drivers/r61523.h>
 #include <gint/defs/attributes.h>
 #include <gint/defs/util.h>
 
@@ -45,7 +46,7 @@ static azrp_hook_prefrag_t *azrp_hook_prefrag = NULL;
 prof_t azrp_perf_cmdgen;
 prof_t azrp_perf_sort;
 prof_t azrp_perf_shaders;
-prof_t azrp_perf_r61524;
+prof_t azrp_perf_lcd;
 prof_t azrp_perf_render;
 
 //=== Command queue ==========================================================//
@@ -244,9 +245,9 @@ void azrp_render_fragments(void)
     uint32_t next_frag_threshold = (frag + 1) << 16;
     uint32_t cmd = azrp_cmdq_index.buf[i];
 
-    prof_enter_norec(azrp_perf_r61524);
-    r61524_start_frame(0, DWIDTH-1, 0, DHEIGHT-1);
-    prof_leave_norec(azrp_perf_r61524);
+    prof_enter_norec(azrp_perf_lcd);
+    r61523_start_frame(0, DWIDTH-1, 0, DHEIGHT-1);
+    prof_leave_norec(azrp_perf_lcd);
 
     while(1) {
         while(cmd < next_frag_threshold && i < azrp_cmdq_index.cursor) {
@@ -266,13 +267,13 @@ void azrp_render_fragments(void)
             (*azrp_hook_prefrag)(frag, azrp_frag, size);
         }
 
-        prof_enter_norec(azrp_perf_r61524);
+        prof_enter_norec(azrp_perf_lcd);
         if(azrp_scale == 1)
-            azrp_r61524_fragment_x1(azrp_frag, 396 * azrp_frag_height);
+            azrp_r61523_fragment_x1(azrp_frag, 396 * azrp_frag_height);
         else if(azrp_scale == 2)
-            azrp_r61524_fragment_x2(azrp_frag, azrp_width, azrp_frag_height);
-        // TODO: r61524 x3 output function
-        prof_leave_norec(azrp_perf_r61524);
+            azrp_r61523_fragment_x2(azrp_frag, azrp_width, azrp_frag_height);
+        // TODO: r61523 x3 output function
+        prof_leave_norec(azrp_perf_lcd);
 
         if(++frag >= azrp_frag_count) break;
         next_frag_threshold += (1 << 16);
@@ -427,6 +428,6 @@ void azrp_perf_clear(void)
     azrp_perf_cmdgen  = prof_make();
     azrp_perf_sort    = prof_make();
     azrp_perf_shaders = prof_make();
-    azrp_perf_r61524  = prof_make();
+    azrp_perf_lcd  = prof_make();
     azrp_perf_render  = prof_make();
 }

@@ -53,6 +53,9 @@ endif()
 # `fxsdk build-cg` to build the engine.
 if("${FXSDK_PLATFORM_LONG}" STREQUAL fxCG50)
   set(AZUR_PLATFORM gint)
+endif
+if("${FXSDK_PLATFORM_LONG}" STREQUAL fxCP)
+  set(AZUR_PLATFORM gint)
 endif()
 
 # Default install paths
