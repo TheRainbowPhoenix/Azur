@@ -246,7 +246,8 @@ void azrp_render_fragments(void)
     uint32_t cmd = azrp_cmdq_index.buf[i];
 
     prof_enter_norec(azrp_perf_lcd);
-    r61523_start_frame(0, DWIDTH-1, 0, DHEIGHT-1);
+    r61523_win_set(0, DWIDTH - 1, 0, DHEIGHT - 1);
+    dupdate();
     prof_leave_norec(azrp_perf_lcd);
 
     while(1) {
