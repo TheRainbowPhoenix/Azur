@@ -1,0 +1,37 @@
+name: Build (fx-cp)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Run all steps inside your GHCR image
+    container:
+      image: ghcr.io/therainbowphoenix/gint-docker:main
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Build (fxsdk build-cp)
+        run: |
+          fxsdk build-cp -c -B build-cg-3rdparty -S 3rdparty
+          make -C build-cg-3rdparty install
+          fxsdk build-cp
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fxcp-apps
+          path: |
+            *.hh3
+            *.g1a
+            *.g3a
+          if-no-files-found: error
+          retention-days: 14
