@@ -19,10 +19,106 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build (fxsdk build-cp)
+      - name: Install Azur / third-party
         run: |
-          fxsdk build-cp -c -B build-cg-3rdparty -S 3rdparty
-          make -C build-cg-3rdparty install
+          fxsdk build-cp -c -B build-cp-3rdparty -S 3rdparty
+          make -C build-cp-3rdparty install
+          fxsdk build-cp install
+
+      - name: Create and build Azur test add-in
+        run: |
+          fxsdk new test
+          cd test
+
+          cat > CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.15)
+          project(TestAzur)
+
+          include(GenerateG1A)
+          include(GenerateG3A)
+          include(GenerateHH3)
+          include(Fxconv)
+          find_package(Gint 2.9 REQUIRED)
+
+          set(SOURCES
+            src/main.c
+          )
+
+          set(ASSETS
+          )
+
+          set(ASSETS_fx
+            assets-fx/example.png
+          )
+
+          set(ASSETS_cg
+            assets-cg/example.png
+          )
+
+          fxconv_declare_assets(${ASSETS} ${ASSETS_fx} ${ASSETS_cg} WITH_METADATA)
+
+          list(APPEND CMAKE_MODULE_PATH "$ENV{AZUR_PATH_${AZUR_PLATFORM}}/lib/cmake")
+          find_package(Azur 0.1 REQUIRED)
+
+          add_executable(TestAzur ${SOURCES} ${ASSETS} ${ASSETS_${FXSDK_PLATFORM}})
+          target_compile_options(TestAzur PRIVATE -Wall -Wextra -Os -g -flto=auto)
+          target_link_libraries(TestAzur Gint::Gint)
+
+          if(AZUR_PLATFORM STREQUAL gint)
+            target_link_libraries(TestAzur Azur::Azur)
+          else()
+            target_link_libraries(TestAzur Azur::Azur Azur::GLM Azur::ImGui)
+          endif()
+
+          if("${FXSDK_PLATFORM_LONG}" STREQUAL fx9860G)
+            generate_g1a(TARGET TestAzur OUTPUT "TestAzur.g1a"
+              NAME "TestAzur" ICON assets-fx/icon.png)
+          elseif("${FXSDK_PLATFORM_LONG}" STREQUAL fxCG50)
+            generate_g3a(TARGET TestAzur OUTPUT "TestAzur.g3a"
+              NAME "TestAzur" ICONS assets-cg/icon-uns.png assets-cg/icon-sel.png)
+          elseif("${FXSDK_PLATFORM_LONG}" STREQUAL fx9860G_G3A)
+            generate_g3a(TARGET TestAzur OUTPUT "TestAzur-fx.g3a"
+              NAME "TestAzur-fx" ICONS assets-cg/icon-uns.png assets-cg/icon-sel.png)
+          elseif("${FXSDK_PLATFORM_LONG}" STREQUAL fxCP)
+            generate_hh3(TARGET TestAzur OUTPUT "TestAzur.hh3")
+          endif()
+          EOF
+
+          cat > src/main.c <<'EOF'
+          #include <azur/gint/render.h>
+          #include <gint/display.h>
+          #include <gint/keyboard.h>
+
+          int main(void)
+          {
+              azrp_config_scale(1);
+              azrp_cmdq_setup(AZRP_CMDQ_DEFAULT_INDEX_SIZE, AZRP_CMDQ_DEFAULT_DATA_SIZE);
+
+              azrp_clear(C_RGB(3, 4, 8));
+
+              azrp_rect(20, 30, 180, 70, C_RGB(5, 20, 31));
+              azrp_rect(30, 42, 160, 46, C_RGB(2, 8, 18));
+
+              azrp_triangle(
+                  250, 55,
+                  305, 150,
+                  190, 165,
+                  C_RGB(31, 23, 5)
+              );
+
+              azrp_line(0, 0, 319, 527, C_WHITE);
+              azrp_line(0, 527, 319, 0, C_WHITE);
+
+              azrp_text(20, 220, C_WHITE, "Azur render demo");
+              azrp_text(20, 240, C_RGB(31, 27, 8), "RGB555 colors, 320x528 screen");
+
+              azrp_update();
+
+              getkey();
+              return 1;
+          }
+          EOF
+
           fxsdk build-cp
 
       - name: Upload Artifacts
@@ -33,5 +129,8 @@ jobs:
             *.hh3
             *.g1a
             *.g3a
+            test/*.hh3
+            test/*.g1a
+            test/*.g3a
           if-no-files-found: error
           retention-days: 14
