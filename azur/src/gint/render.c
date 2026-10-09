@@ -247,7 +247,8 @@ void azrp_render_fragments(void)
 
     prof_enter_norec(azrp_perf_lcd);
 #if GINT_HW_CP
-    r61523_start_frame(0, DWIDTH - 1, 0, DHEIGHT - 1);
+    r61523_win_set(0, DWIDTH - 1, 0, DHEIGHT - 1);
+    // FIXME: r61523_start_frame(0, DWIDTH - 1, 0, DHEIGHT - 1);
 #else
     r61524_start_frame(0, DWIDTH - 1, 0, DHEIGHT - 1);
 #endif
